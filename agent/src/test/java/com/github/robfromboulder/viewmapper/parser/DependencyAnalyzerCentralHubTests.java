@@ -1,6 +1,6 @@
 // © 2024-2025 Rob Dickinson (robfromboulder)
 
-package com.github.robfromboulder.viewmapper.service;
+package com.github.robfromboulder.viewmapper.parser;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

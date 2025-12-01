@@ -1,9 +1,6 @@
 // © 2024-2025 Rob Dickinson (robfromboulder)
 
-package com.github.robfromboulder.viewmapper.service;
-
-import com.github.robfromboulder.viewmapper.parser.TableReference;
-import com.github.robfromboulder.viewmapper.parser.TrinoSqlParser;
+package com.github.robfromboulder.viewmapper.parser;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.scoring.BetweennessCentrality;
 import org.jgrapht.graph.DefaultDirectedGraph;
