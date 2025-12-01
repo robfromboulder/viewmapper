@@ -11,9 +11,9 @@ import java.util.stream.Collectors;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Tests for simple SQL parsing cases.
+ * Tests for basic SQL parsing cases.
  */
-class TestTrinoSqlParserUsage {
+class TrinoSqlParserBasicTests {
 
     private TrinoSqlParser parser;
 
@@ -29,6 +29,15 @@ class TestTrinoSqlParserUsage {
         Set<TableReference> dependencies = parser.extractDependencies(sql);
         assertThat(dependencies).hasSize(1);
         assertThat(getTableNames(dependencies)).containsExactly("users");
+    }
+
+    @Test
+    void testSimpleCaseSensitivity() {
+        String sql = "SELECT * FROM TempData";
+
+        Set<TableReference> dependencies = parser.extractDependencies(sql);
+        assertThat(dependencies).hasSize(1);
+        assertThat(getTableNames(dependencies)).containsExactly("tempdata");
     }
 
     @Test
