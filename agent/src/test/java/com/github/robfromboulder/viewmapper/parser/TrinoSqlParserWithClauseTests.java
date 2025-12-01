@@ -15,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * <p>
  * CTEs should NOT appear in dependencies - only the actual tables/views they reference.
  */
-class TestTrinoSqlParserWithClauses {
+class TrinoSqlParserWithClauseTests {
 
     private TrinoSqlParser parser;
 

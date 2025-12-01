@@ -24,7 +24,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * - Special characters and quoted identifiers
  * - Invalid SQL
  */
-class TestTrinoSqlParserEdgeCases {
+class TrinoSqlParserEdgeTests {
 
     private TrinoSqlParser parser;
 
