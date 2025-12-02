@@ -1,5 +1,73 @@
-.claude
-.DS_Store
+# Maven build output
+target/
+dependency-reduced-pom.xml
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+
+# Java compiled classes
+*.class
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Log files
+*.log
+logs/
+
+# IDE - IntelliJ IDEA
 .idea
 *.iml
-target/
+*.ipr
+*.iws
+out/
+
+# IDE - Eclipse
+.classpath
+.project
+.settings/
+bin/
+
+# IDE - VS Code
+.vscode/
+
+# IDE - NetBeans
+nbproject/
+build/
+nbbuild/
+dist/
+nbdist/
+
+# OS - macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# OS - Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# OS - Linux
+*~
+.directory
+
+# Environment variables and secrets
+.env
+.env.local
+*.env
+
+# Claude Code
+.claude
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~.nib
