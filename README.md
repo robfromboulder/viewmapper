@@ -17,9 +17,9 @@ ViewMapper uses the Trino parser to properly report on all view relationships, e
 With its understanding of view relationships, ViewMapper can easily display this hierarchy into a Mermaid diagram.
 ```mermaid
 graph TD
-    node1["example.a"]
+    node1["example.c"]
     node2["example.b"]
-    node3["example.c"]
+    node3["example.a"]
 
     node1 --> node2
     node2 --> node3
