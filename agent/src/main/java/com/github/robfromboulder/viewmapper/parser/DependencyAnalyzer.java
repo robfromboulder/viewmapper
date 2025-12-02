@@ -1,6 +1,7 @@
 // © 2024-2025 Rob Dickinson (robfromboulder)
 
 package com.github.robfromboulder.viewmapper.parser;
+
 import org.jgrapht.Graph;
 import org.jgrapht.alg.scoring.BetweennessCentrality;
 import org.jgrapht.graph.DefaultDirectedGraph;
@@ -135,7 +136,6 @@ public class DependencyAnalyzer {
      */
     public Set<String> findSubgraph(String focusView, int depthUpstream, int depthDownstream, int maxNodes) {
         if (!graph.containsVertex(focusView)) return new HashSet<>();
-
         Set<String> subgraph = new HashSet<>();
         subgraph.add(focusView);
 
@@ -171,7 +171,6 @@ public class DependencyAnalyzer {
     private Set<String> bfsUpstream(String start, int maxDepth) {
         List<String> queue = new ArrayList<>();
         queue.add(start);
-
         Map<String, Integer> depths = new HashMap<>();
         depths.put(start, 0);
 
@@ -198,7 +197,6 @@ public class DependencyAnalyzer {
     private Set<String> bfsDownstream(String start, int maxDepth) {
         List<String> queue = new ArrayList<>();
         queue.add(start);
-
         Map<String, Integer> depths = new HashMap<>();
         depths.put(start, 0);
 
@@ -223,31 +221,13 @@ public class DependencyAnalyzer {
      * Checks if a view exists in the graph.
      */
     public boolean containsView(String viewName) {
-        // todo not covered by test cases, remove if not needed
         return graph.containsVertex(viewName);
-    }
-
-    /**
-     * Gets the number of dependencies (incoming edges) for a view.
-     */
-    public int getDependencyCount(String viewName) {
-        // todo not covered by test cases, remove if not needed
-        return graph.containsVertex(viewName) ? graph.inDegreeOf(viewName) : 0;
-    }
-
-    /**
-     * Gets the number of dependents (outgoing edges) for a view.
-     */
-    public int getDependentCount(String viewName) {
-        // todo not covered by test cases, remove if not needed
-        return graph.containsVertex(viewName) ? graph.outDegreeOf(viewName) : 0;
     }
 
     /**
      * Returns the underlying graph (for testing or advanced analysis).
      */
     public Graph<String, DefaultEdge> getGraph() {
-        // todo not covered by test cases, remove if not needed
         return graph;
     }
 
@@ -255,7 +235,6 @@ public class DependencyAnalyzer {
      * Returns the total number of views in the graph.
      */
     public int getViewCount() {
-        // todo not covered by test cases, remove if not needed
         return graph.vertexSet().size();
     }
 
