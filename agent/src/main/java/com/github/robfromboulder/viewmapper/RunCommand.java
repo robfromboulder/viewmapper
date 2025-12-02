@@ -25,6 +25,12 @@ public class RunCommand implements Callable<Integer> {
     @Option(names = {"--load"}, description = "Load schema from JSON file instead of connecting to Trino")
     private File loadFile;
 
+    @Option(names = {"--schema"}, description = "Trino schema name (used when connecting via JDBC)")
+    private String schema;
+
+    @Option(names = {"--trino-url"}, description = "Trino JDBC connection URL (e.g., jdbc:trino://localhost:8080)")
+    private String trinoUrl;
+
     @Option(names = {"--output"}, description = "Output format: text (default) or json", defaultValue = "text")
     private String outputFormat;
 
