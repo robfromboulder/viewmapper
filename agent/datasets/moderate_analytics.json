@@ -1,0 +1,148 @@
+{
+  "views": [
+    {
+      "name": "dim_users",
+      "sql": "SELECT user_id, username, email, signup_date, country FROM raw.users"
+    },
+    {
+      "name": "dim_products",
+      "sql": "SELECT product_id, name, category, subcategory, price, cost FROM raw.products"
+    },
+    {
+      "name": "dim_dates",
+      "sql": "SELECT date_id, date, year, quarter, month, week, day_of_week FROM raw.dates"
+    },
+    {
+      "name": "fact_page_views",
+      "sql": "SELECT page_view_id, user_id, page_url, view_timestamp FROM raw.page_views"
+    },
+    {
+      "name": "fact_orders",
+      "sql": "SELECT order_id, user_id, product_id, quantity, order_date, status FROM raw.orders"
+    },
+    {
+      "name": "fact_payments",
+      "sql": "SELECT payment_id, order_id, amount, payment_method, payment_date FROM raw.payments"
+    },
+    {
+      "name": "fact_support_tickets",
+      "sql": "SELECT ticket_id, user_id, subject, status, created_date, resolved_date FROM raw.support_tickets"
+    },
+    {
+      "name": "user_orders",
+      "sql": "SELECT u.user_id, u.username, o.order_id, o.order_date, o.status FROM dim_users u JOIN fact_orders o ON u.user_id = o.user_id"
+    },
+    {
+      "name": "order_payments",
+      "sql": "SELECT o.order_id, o.order_date, p.payment_id, p.amount, p.payment_method FROM fact_orders o JOIN fact_payments p ON o.order_id = p.order_id"
+    },
+    {
+      "name": "product_orders",
+      "sql": "SELECT p.name, p.category, o.order_id, o.quantity FROM dim_products p JOIN fact_orders o ON p.product_id = o.product_id"
+    },
+    {
+      "name": "user_support_history",
+      "sql": "SELECT u.user_id, u.username, t.ticket_id, t.subject, t.status FROM dim_users u JOIN fact_support_tickets t ON u.user_id = t.user_id"
+    },
+    {
+      "name": "daily_orders",
+      "sql": "SELECT d.date, COUNT(o.order_id) as order_count FROM dim_dates d JOIN fact_orders o ON DATE(o.order_date) = d.date GROUP BY d.date"
+    },
+    {
+      "name": "daily_revenue",
+      "sql": "SELECT d.date, SUM(p.amount) as revenue FROM dim_dates d JOIN fact_payments p ON DATE(p.payment_date) = d.date GROUP BY d.date"
+    },
+    {
+      "name": "user_engagement",
+      "sql": "SELECT u.user_id, u.username, COUNT(pv.page_view_id) as page_views FROM dim_users u JOIN fact_page_views pv ON u.user_id = pv.user_id GROUP BY u.user_id, u.username"
+    },
+    {
+      "name": "product_revenue",
+      "sql": "SELECT pr.name, pr.category, SUM(py.amount) as total_revenue FROM dim_products pr JOIN fact_orders o ON pr.product_id = o.product_id JOIN fact_payments py ON o.order_id = py.order_id GROUP BY pr.name, pr.category"
+    },
+    {
+      "name": "user_lifetime_value",
+      "sql": "SELECT u.user_id, u.username, COUNT(o.order_id) as order_count, SUM(p.amount) as lifetime_value FROM dim_users u JOIN fact_orders o ON u.user_id = o.user_id JOIN fact_payments p ON o.order_id = p.order_id GROUP BY u.user_id, u.username"
+    },
+    {
+      "name": "top_users_by_revenue",
+      "sql": "SELECT user_id, username, lifetime_value FROM user_lifetime_value ORDER BY lifetime_value DESC LIMIT 100"
+    },
+    {
+      "name": "top_products_by_revenue",
+      "sql": "SELECT name, category, total_revenue FROM product_revenue ORDER BY total_revenue DESC LIMIT 50"
+    },
+    {
+      "name": "monthly_kpis",
+      "sql": "SELECT d.year, d.month, SUM(p.amount) as revenue, COUNT(DISTINCT o.order_id) as orders, COUNT(DISTINCT o.user_id) as unique_customers FROM dim_dates d JOIN fact_orders o ON DATE(o.order_date) = d.date JOIN fact_payments p ON o.order_id = p.order_id GROUP BY d.year, d.month"
+    },
+    {
+      "name": "user_cohorts",
+      "sql": "SELECT DATE_TRUNC('month', u.signup_date) as cohort_month, COUNT(*) as user_count FROM dim_users u GROUP BY DATE_TRUNC('month', u.signup_date)"
+    },
+    {
+      "name": "retention_analysis",
+      "sql": "SELECT c.cohort_month, DATE_DIFF('month', c.cohort_month, o.order_date) as months_since_signup, COUNT(DISTINCT o.user_id) as active_users FROM user_cohorts c JOIN dim_users u ON DATE_TRUNC('month', u.signup_date) = c.cohort_month JOIN fact_orders o ON u.user_id = o.user_id GROUP BY c.cohort_month, DATE_DIFF('month', c.cohort_month, o.order_date)"
+    },
+    {
+      "name": "category_performance",
+      "sql": "SELECT category, SUM(total_revenue) as revenue, COUNT(*) as product_count FROM product_revenue GROUP BY category"
+    },
+    {
+      "name": "payment_method_analysis",
+      "sql": "SELECT p.payment_method, COUNT(*) as transaction_count, SUM(p.amount) as total_amount FROM fact_payments p GROUP BY p.payment_method"
+    },
+    {
+      "name": "support_metrics",
+      "sql": "SELECT status, COUNT(*) as ticket_count, AVG(DATE_DIFF('day', created_date, resolved_date)) as avg_resolution_days FROM fact_support_tickets WHERE resolved_date IS NOT NULL GROUP BY status"
+    },
+    {
+      "name": "user_segments",
+      "sql": "SELECT user_id, username, CASE WHEN lifetime_value > 10000 THEN 'VIP' WHEN lifetime_value > 1000 THEN 'Premium' ELSE 'Standard' END as segment FROM user_lifetime_value"
+    },
+    {
+      "name": "abandoned_carts",
+      "sql": "SELECT u.user_id, u.username, o.order_id, o.order_date FROM dim_users u JOIN fact_orders o ON u.user_id = o.user_id WHERE o.status = 'abandoned'"
+    },
+    {
+      "name": "repeat_customers",
+      "sql": "SELECT user_id, username, order_count FROM user_lifetime_value WHERE order_count > 1"
+    },
+    {
+      "name": "new_vs_returning",
+      "sql": "SELECT d.date, COUNT(CASE WHEN ulv.order_count = 1 THEN 1 END) as new_customers, COUNT(CASE WHEN ulv.order_count > 1 THEN 1 END) as returning_customers FROM dim_dates d JOIN fact_orders o ON DATE(o.order_date) = d.date JOIN user_lifetime_value ulv ON o.user_id = ulv.user_id GROUP BY d.date"
+    },
+    {
+      "name": "country_revenue",
+      "sql": "SELECT u.country, SUM(p.amount) as revenue, COUNT(DISTINCT o.user_id) as customers FROM dim_users u JOIN fact_orders o ON u.user_id = o.user_id JOIN fact_payments p ON o.order_id = p.order_id GROUP BY u.country"
+    },
+    {
+      "name": "product_margins",
+      "sql": "SELECT pr.name, pr.category, SUM((pr.price - pr.cost) * o.quantity) as total_margin FROM dim_products pr JOIN fact_orders o ON pr.product_id = o.product_id GROUP BY pr.name, pr.category"
+    },
+    {
+      "name": "weekly_trends",
+      "sql": "SELECT d.year, d.week, SUM(p.amount) as revenue FROM dim_dates d JOIN fact_payments p ON DATE(p.payment_date) = d.date GROUP BY d.year, d.week"
+    },
+    {
+      "name": "quarterly_comparison",
+      "sql": "SELECT d.year, d.quarter, SUM(p.amount) as revenue, COUNT(DISTINCT o.order_id) as orders FROM dim_dates d JOIN fact_orders o ON DATE(o.order_date) = d.date JOIN fact_payments p ON o.order_id = p.order_id GROUP BY d.year, d.quarter"
+    },
+    {
+      "name": "customer_360",
+      "sql": "SELECT u.user_id, u.username, u.email, u.country, ulv.order_count, ulv.lifetime_value, ue.page_views, COUNT(t.ticket_id) as support_tickets FROM dim_users u LEFT JOIN user_lifetime_value ulv ON u.user_id = ulv.user_id LEFT JOIN user_engagement ue ON u.user_id = ue.user_id LEFT JOIN fact_support_tickets t ON u.user_id = t.user_id GROUP BY u.user_id, u.username, u.email, u.country, ulv.order_count, ulv.lifetime_value, ue.page_views"
+    },
+    {
+      "name": "executive_dashboard",
+      "sql": "SELECT 'Total Revenue' as metric, SUM(revenue) as value FROM daily_revenue UNION ALL SELECT 'Total Orders', SUM(order_count) FROM daily_orders UNION ALL SELECT 'Active Users', COUNT(DISTINCT user_id) FROM user_engagement"
+    },
+    {
+      "name": "marketing_report",
+      "sql": "SELECT c.cohort_month, c.user_count, AVG(ulv.lifetime_value) as avg_ltv FROM user_cohorts c JOIN dim_users u ON DATE_TRUNC('month', u.signup_date) = c.cohort_month JOIN user_lifetime_value ulv ON u.user_id = ulv.user_id GROUP BY c.cohort_month, c.user_count"
+    },
+    {
+      "name": "operations_report",
+      "sql": "SELECT d.date, do.order_count, dr.revenue, sm.ticket_count FROM dim_dates d LEFT JOIN daily_orders do ON d.date = do.date LEFT JOIN daily_revenue dr ON d.date = dr.date LEFT JOIN support_metrics sm ON 1=1"
+    }
+  ]
+}

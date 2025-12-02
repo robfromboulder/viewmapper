@@ -1,0 +1,281 @@
+{
+  "description": "Realistic business intelligence data warehouse with star schema design",
+  "views": [
+    {
+      "name": "dim_customer",
+      "sql": "SELECT customer_key, customer_id, first_name, last_name, email, phone, birth_date, gender, marital_status, income_level, education_level, occupation, city, state, country, postal_code, registration_date, customer_since_days, preferred_contact_method, email_opt_in, sms_opt_in, current_flag, effective_date, expiration_date, row_hash FROM staging.stg_customer WHERE current_flag = 1"
+    },
+    {
+      "name": "dim_product",
+      "sql": "SELECT product_key, product_id, product_name, product_description, sku, brand, category_level_1, category_level_2, category_level_3, subcategory, unit_of_measure, package_type, package_size, unit_cost, unit_price, is_active, introduction_date, discontinuation_date, supplier_id, supplier_name, manufacturer, current_flag, effective_date, expiration_date, row_hash FROM staging.stg_product WHERE current_flag = 1"
+    },
+    {
+      "name": "dim_date",
+      "sql": "SELECT date_key, full_date, day_of_week, day_num_in_month, day_num_overall, day_name, day_abbrev, weekday_flag, week_num_in_year, week_num_overall, week_begin_date, month, month_num_overall, month_name, month_abbrev, quarter, quarter_name, year, year_quarter, year_month, is_weekend, is_holiday, holiday_name, fiscal_year, fiscal_quarter, fiscal_month, same_day_year_ago_date FROM staging.stg_date"
+    },
+    {
+      "name": "dim_store",
+      "sql": "SELECT store_key, store_id, store_name, store_number, store_type, store_size_sqft, store_format, address, city, state, country, postal_code, region, district, market, latitude, longitude, phone, manager_name, opening_date, remodel_date, is_active, current_flag, effective_date, expiration_date, row_hash FROM staging.stg_store WHERE current_flag = 1"
+    },
+    {
+      "name": "dim_employee",
+      "sql": "SELECT employee_key, employee_id, first_name, last_name, full_name, email, phone, birth_date, hire_date, termination_date, is_active, job_title, job_level, department, cost_center, manager_employee_id, manager_name, hourly_rate, annual_salary, employment_status, employment_type, location, current_flag, effective_date, expiration_date, row_hash FROM staging.stg_employee WHERE current_flag = 1"
+    },
+    {
+      "name": "dim_promotion",
+      "sql": "SELECT promotion_key, promotion_id, promotion_name, promotion_type, promotion_category, discount_type, discount_percent, discount_amount, start_date, end_date, min_purchase_amount, max_discount_amount, is_stackable, channel, media_type, cost, current_flag, effective_date, expiration_date, row_hash FROM staging.stg_promotion WHERE current_flag = 1"
+    },
+    {
+      "name": "fact_sales",
+      "sql": "SELECT sales_key, transaction_id, transaction_line_number, date_key, customer_key, product_key, store_key, employee_key, promotion_key, quantity, unit_price, unit_cost, extended_price, extended_cost, discount_amount, tax_amount, total_amount, gross_profit, gross_margin_percent, return_flag, return_reason_code, payment_method, tender_type, transaction_timestamp, fiscal_date_key FROM staging.stg_sales"
+    },
+    {
+      "name": "fact_inventory",
+      "sql": "SELECT inventory_key, date_key, product_key, store_key, quantity_on_hand, quantity_on_order, reorder_point, reorder_quantity, quantity_allocated, quantity_available, quantity_in_transit, unit_cost, extended_cost, days_supply, stock_out_flag, overstock_flag, slow_moving_flag, snapshot_timestamp FROM staging.stg_inventory"
+    },
+    {
+      "name": "fact_sales_target",
+      "sql": "SELECT target_key, date_key, product_key, store_key, employee_key, target_quantity, target_revenue, target_profit, target_type, target_period FROM staging.stg_sales_target"
+    },
+    {
+      "name": "sales_summary",
+      "sql": "SELECT fs.date_key, dd.full_date, dd.year, dd.quarter, dd.month, dd.day_name, COUNT(DISTINCT fs.transaction_id) as transaction_count, SUM(fs.quantity) as total_units, SUM(fs.extended_price) as gross_sales, SUM(fs.discount_amount) as total_discounts, SUM(fs.tax_amount) as total_tax, SUM(fs.total_amount) as net_sales, SUM(fs.extended_cost) as total_cost, SUM(fs.gross_profit) as total_profit, AVG(fs.gross_margin_percent) as avg_margin_pct FROM fact_sales fs JOIN dim_date dd ON fs.date_key = dd.date_key GROUP BY fs.date_key, dd.full_date, dd.year, dd.quarter, dd.month, dd.day_name"
+    },
+    {
+      "name": "customer_sales",
+      "sql": "SELECT fs.customer_key, dc.customer_id, dc.first_name, dc.last_name, dc.email, dc.city, dc.state, COUNT(DISTINCT fs.transaction_id) as transaction_count, SUM(fs.quantity) as total_units, SUM(fs.total_amount) as total_spent, SUM(fs.gross_profit) as total_profit_generated, MIN(dd.full_date) as first_purchase_date, MAX(dd.full_date) as last_purchase_date FROM fact_sales fs JOIN dim_customer dc ON fs.customer_key = dc.customer_key JOIN dim_date dd ON fs.date_key = dd.date_key GROUP BY fs.customer_key, dc.customer_id, dc.first_name, dc.last_name, dc.email, dc.city, dc.state"
+    },
+    {
+      "name": "product_sales",
+      "sql": "SELECT fs.product_key, dp.product_id, dp.product_name, dp.brand, dp.category_level_1, dp.category_level_2, SUM(fs.quantity) as units_sold, SUM(fs.extended_price) as gross_revenue, SUM(fs.discount_amount) as total_discounts, SUM(fs.total_amount) as net_revenue, SUM(fs.extended_cost) as total_cost, SUM(fs.gross_profit) as total_profit, AVG(fs.gross_margin_percent) as avg_margin_pct FROM fact_sales fs JOIN dim_product dp ON fs.product_key = dp.product_key GROUP BY fs.product_key, dp.product_id, dp.product_name, dp.brand, dp.category_level_1, dp.category_level_2"
+    },
+    {
+      "name": "store_sales",
+      "sql": "SELECT fs.store_key, ds.store_id, ds.store_name, ds.city, ds.state, ds.region, COUNT(DISTINCT fs.transaction_id) as transaction_count, COUNT(DISTINCT fs.customer_key) as unique_customers, SUM(fs.total_amount) as total_revenue, SUM(fs.gross_profit) as total_profit FROM fact_sales fs JOIN dim_store ds ON fs.store_key = ds.store_key GROUP BY fs.store_key, ds.store_id, ds.store_name, ds.city, ds.state, ds.region"
+    },
+    {
+      "name": "employee_sales",
+      "sql": "SELECT fs.employee_key, de.employee_id, de.full_name, de.job_title, de.department, COUNT(DISTINCT fs.transaction_id) as transactions_processed, SUM(fs.total_amount) as total_sales, SUM(fs.gross_profit) as total_profit FROM fact_sales fs JOIN dim_employee de ON fs.employee_key = de.employee_key GROUP BY fs.employee_key, de.employee_id, de.full_name, de.job_title, de.department"
+    },
+    {
+      "name": "promotion_performance",
+      "sql": "SELECT fs.promotion_key, dp.promotion_id, dp.promotion_name, dp.promotion_type, dp.discount_type, COUNT(DISTINCT fs.transaction_id) as transactions_with_promo, SUM(fs.quantity) as units_sold, SUM(fs.total_amount) as revenue_with_promo, SUM(fs.discount_amount) as total_discount_given, dp.cost as promotion_cost, SUM(fs.gross_profit) - dp.cost as net_promo_profit FROM fact_sales fs JOIN dim_promotion dp ON fs.promotion_key = dp.promotion_key WHERE fs.promotion_key > 0 GROUP BY fs.promotion_key, dp.promotion_id, dp.promotion_name, dp.promotion_type, dp.discount_type, dp.cost"
+    },
+    {
+      "name": "inventory_summary",
+      "sql": "SELECT fi.date_key, dd.full_date, fi.store_key, ds.store_name, SUM(fi.quantity_on_hand) as total_on_hand, SUM(fi.quantity_available) as total_available, SUM(fi.extended_cost) as total_inventory_value, COUNT(CASE WHEN fi.stock_out_flag = 1 THEN 1 END) as stockout_count, COUNT(CASE WHEN fi.overstock_flag = 1 THEN 1 END) as overstock_count FROM fact_inventory fi JOIN dim_date dd ON fi.date_key = dd.date_key JOIN dim_store ds ON fi.store_key = ds.store_key GROUP BY fi.date_key, dd.full_date, fi.store_key, ds.store_name"
+    },
+    {
+      "name": "daily_sales",
+      "sql": "SELECT date_key, full_date, year, month, day_name, transaction_count, net_sales, total_profit, avg_margin_pct FROM sales_summary ORDER BY date_key"
+    },
+    {
+      "name": "weekly_sales",
+      "sql": "SELECT dd.year, dd.week_num_in_year, dd.week_begin_date, SUM(ss.transaction_count) as transaction_count, SUM(ss.net_sales) as net_sales, SUM(ss.total_profit) as total_profit FROM sales_summary ss JOIN dim_date dd ON ss.date_key = dd.date_key GROUP BY dd.year, dd.week_num_in_year, dd.week_begin_date"
+    },
+    {
+      "name": "monthly_sales",
+      "sql": "SELECT year, month, month_name, SUM(transaction_count) as transaction_count, SUM(net_sales) as net_sales, SUM(total_profit) as total_profit, AVG(avg_margin_pct) as avg_margin_pct FROM sales_summary GROUP BY year, month, month_name"
+    },
+    {
+      "name": "quarterly_sales",
+      "sql": "SELECT year, quarter, quarter_name, SUM(transaction_count) as transaction_count, SUM(net_sales) as net_sales, SUM(total_profit) as total_profit FROM sales_summary GROUP BY year, quarter, quarter_name"
+    },
+    {
+      "name": "yearly_sales",
+      "sql": "SELECT year, SUM(transaction_count) as transaction_count, SUM(net_sales) as net_sales, SUM(total_profit) as total_profit FROM sales_summary GROUP BY year"
+    },
+    {
+      "name": "customer_lifetime_value",
+      "sql": "SELECT customer_key, customer_id, first_name, last_name, email, transaction_count, total_spent, total_profit_generated, DATEDIFF('day', first_purchase_date, last_purchase_date) as customer_tenure_days, total_spent / NULLIF(transaction_count, 0) as avg_transaction_value FROM customer_sales"
+    },
+    {
+      "name": "customer_segments",
+      "sql": "SELECT customer_key, customer_id, first_name, last_name, total_spent, transaction_count, CASE WHEN total_spent >= 10000 THEN 'Platinum' WHEN total_spent >= 5000 THEN 'Gold' WHEN total_spent >= 1000 THEN 'Silver' ELSE 'Bronze' END as value_segment, CASE WHEN transaction_count >= 20 THEN 'Frequent' WHEN transaction_count >= 10 THEN 'Regular' WHEN transaction_count >= 5 THEN 'Occasional' ELSE 'Rare' END as frequency_segment FROM customer_lifetime_value"
+    },
+    {
+      "name": "rfm_analysis",
+      "sql": "SELECT cs.customer_key, cs.customer_id, DATEDIFF('day', cs.last_purchase_date, CURRENT_DATE) as recency_days, cs.transaction_count as frequency, cs.total_spent as monetary_value, CASE WHEN DATEDIFF('day', cs.last_purchase_date, CURRENT_DATE) <= 30 THEN 5 WHEN DATEDIFF('day', cs.last_purchase_date, CURRENT_DATE) <= 90 THEN 4 WHEN DATEDIFF('day', cs.last_purchase_date, CURRENT_DATE) <= 180 THEN 3 WHEN DATEDIFF('day', cs.last_purchase_date, CURRENT_DATE) <= 365 THEN 2 ELSE 1 END as recency_score, CASE WHEN cs.transaction_count >= 20 THEN 5 WHEN cs.transaction_count >= 10 THEN 4 WHEN cs.transaction_count >= 5 THEN 3 WHEN cs.transaction_count >= 2 THEN 2 ELSE 1 END as frequency_score, CASE WHEN cs.total_spent >= 10000 THEN 5 WHEN cs.total_spent >= 5000 THEN 4 WHEN cs.total_spent >= 1000 THEN 3 WHEN cs.total_spent >= 500 THEN 2 ELSE 1 END as monetary_score FROM customer_sales cs"
+    },
+    {
+      "name": "top_customers",
+      "sql": "SELECT customer_key, customer_id, first_name, last_name, email, total_spent, transaction_count, value_segment FROM customer_segments WHERE value_segment IN ('Platinum', 'Gold') ORDER BY total_spent DESC LIMIT 100"
+    },
+    {
+      "name": "at_risk_customers",
+      "sql": "SELECT rfm.customer_key, rfm.customer_id, cs.first_name, cs.last_name, cs.email, rfm.recency_days, rfm.frequency, rfm.monetary_value, cs.value_segment FROM rfm_analysis rfm JOIN customer_sales cs ON rfm.customer_key = cs.customer_key WHERE rfm.recency_score <= 2 AND rfm.frequency_score >= 3"
+    },
+    {
+      "name": "new_customers",
+      "sql": "SELECT cs.customer_key, cs.customer_id, cs.first_name, cs.last_name, cs.email, cs.first_purchase_date FROM customer_sales cs WHERE cs.first_purchase_date >= DATE_ADD('day', -30, CURRENT_DATE)"
+    },
+    {
+      "name": "loyal_customers",
+      "sql": "SELECT rfm.customer_key, rfm.customer_id, cs.first_name, cs.last_name, cs.email, rfm.frequency, rfm.monetary_value FROM rfm_analysis rfm JOIN customer_sales cs ON rfm.customer_key = cs.customer_key WHERE rfm.frequency_score >= 4 AND rfm.recency_score >= 4"
+    },
+    {
+      "name": "customer_cohorts",
+      "sql": "SELECT DATE_TRUNC('month', first_purchase_date) as cohort_month, COUNT(*) as customer_count, SUM(total_spent) as cohort_revenue, AVG(total_spent) as avg_customer_value FROM customer_sales GROUP BY DATE_TRUNC('month', first_purchase_date)"
+    },
+    {
+      "name": "cohort_retention",
+      "sql": "SELECT cc.cohort_month, DATE_DIFF('month', cc.cohort_month, dd.full_date) as months_since_first_purchase, COUNT(DISTINCT fs.customer_key) as active_customers FROM customer_cohorts cc JOIN customer_sales cs ON DATE_TRUNC('month', cs.first_purchase_date) = cc.cohort_month JOIN fact_sales fs ON cs.customer_key = fs.customer_key JOIN dim_date dd ON fs.date_key = dd.date_key GROUP BY cc.cohort_month, DATE_DIFF('month', cc.cohort_month, dd.full_date)"
+    },
+    {
+      "name": "top_products",
+      "sql": "SELECT product_key, product_id, product_name, brand, category_level_1, units_sold, net_revenue, total_profit FROM product_sales ORDER BY net_revenue DESC LIMIT 100"
+    },
+    {
+      "name": "slow_moving_products",
+      "sql": "SELECT product_key, product_id, product_name, brand, category_level_1, units_sold, net_revenue FROM product_sales WHERE units_sold < 10 ORDER BY units_sold"
+    },
+    {
+      "name": "high_margin_products",
+      "sql": "SELECT product_key, product_id, product_name, brand, category_level_1, avg_margin_pct, total_profit FROM product_sales WHERE avg_margin_pct > 50 ORDER BY total_profit DESC"
+    },
+    {
+      "name": "category_performance",
+      "sql": "SELECT category_level_1, SUM(units_sold) as total_units, SUM(net_revenue) as total_revenue, SUM(total_profit) as total_profit, AVG(avg_margin_pct) as avg_margin FROM product_sales GROUP BY category_level_1"
+    },
+    {
+      "name": "brand_performance",
+      "sql": "SELECT brand, SUM(units_sold) as total_units, SUM(net_revenue) as total_revenue, SUM(total_profit) as total_profit FROM product_sales GROUP BY brand"
+    },
+    {
+      "name": "product_mix",
+      "sql": "SELECT ps.category_level_1, ps.net_revenue, ts.total_revenue, (ps.net_revenue / ts.total_revenue * 100) as revenue_mix_percent FROM (SELECT category_level_1, SUM(net_revenue) as net_revenue FROM product_sales GROUP BY category_level_1) ps CROSS JOIN (SELECT SUM(net_revenue) as total_revenue FROM product_sales) ts"
+    },
+    {
+      "name": "top_stores",
+      "sql": "SELECT store_key, store_id, store_name, city, state, region, total_revenue, total_profit FROM store_sales ORDER BY total_revenue DESC LIMIT 50"
+    },
+    {
+      "name": "underperforming_stores",
+      "sql": "SELECT ss.store_key, ss.store_id, ss.store_name, ss.total_revenue, avg_store.avg_revenue FROM store_sales ss CROSS JOIN (SELECT AVG(total_revenue) as avg_revenue FROM store_sales) avg_store WHERE ss.total_revenue < avg_store.avg_revenue"
+    },
+    {
+      "name": "regional_performance",
+      "sql": "SELECT region, SUM(transaction_count) as total_transactions, SUM(total_revenue) as total_revenue, SUM(total_profit) as total_profit FROM store_sales GROUP BY region"
+    },
+    {
+      "name": "store_productivity",
+      "sql": "SELECT ss.store_key, ss.store_id, ss.store_name, ds.store_size_sqft, ss.total_revenue, ss.total_revenue / NULLIF(ds.store_size_sqft, 0) as revenue_per_sqft FROM store_sales ss JOIN dim_store ds ON ss.store_key = ds.store_key"
+    },
+    {
+      "name": "top_employees",
+      "sql": "SELECT employee_key, employee_id, full_name, job_title, department, total_sales, total_profit FROM employee_sales ORDER BY total_sales DESC LIMIT 50"
+    },
+    {
+      "name": "department_performance",
+      "sql": "SELECT department, SUM(transactions_processed) as total_transactions, SUM(total_sales) as total_sales FROM employee_sales GROUP BY department"
+    },
+    {
+      "name": "sales_per_employee",
+      "sql": "SELECT es.employee_key, es.employee_id, es.full_name, es.total_sales, de.annual_salary, es.total_sales / NULLIF(de.annual_salary, 0) as sales_per_salary_dollar FROM employee_sales es JOIN dim_employee de ON es.employee_key = de.employee_key"
+    },
+    {
+      "name": "inventory_stock_status",
+      "sql": "SELECT fi.product_key, dp.product_name, fi.store_key, ds.store_name, fi.quantity_available, fi.reorder_point, CASE WHEN fi.stock_out_flag = 1 THEN 'Out of Stock' WHEN fi.quantity_available <= fi.reorder_point THEN 'Low Stock' WHEN fi.overstock_flag = 1 THEN 'Overstock' ELSE 'Normal' END as stock_status FROM fact_inventory fi JOIN dim_product dp ON fi.product_key = dp.product_key JOIN dim_store ds ON fi.store_key = ds.store_key WHERE fi.date_key = (SELECT MAX(date_key) FROM fact_inventory)"
+    },
+    {
+      "name": "stockouts",
+      "sql": "SELECT product_key, product_name, store_key, store_name FROM inventory_stock_status WHERE stock_status = 'Out of Stock'"
+    },
+    {
+      "name": "low_stock_alerts",
+      "sql": "SELECT product_key, product_name, store_key, store_name, quantity_available, reorder_point FROM inventory_stock_status WHERE stock_status = 'Low Stock'"
+    },
+    {
+      "name": "overstock_items",
+      "sql": "SELECT product_key, product_name, store_key, store_name, quantity_available FROM inventory_stock_status WHERE stock_status = 'Overstock'"
+    },
+    {
+      "name": "inventory_turnover",
+      "sql": "SELECT ps.product_key, ps.product_id, ps.product_name, ps.units_sold, AVG(fi.quantity_on_hand) as avg_inventory, ps.units_sold / NULLIF(AVG(fi.quantity_on_hand), 0) as turnover_ratio FROM product_sales ps JOIN fact_inventory fi ON ps.product_key = fi.product_key GROUP BY ps.product_key, ps.product_id, ps.product_name, ps.units_sold"
+    },
+    {
+      "name": "inventory_value_by_store",
+      "sql": "SELECT store_key, store_name, total_inventory_value FROM inventory_summary WHERE date_key = (SELECT MAX(date_key) FROM inventory_summary)"
+    },
+    {
+      "name": "sales_vs_target",
+      "sql": "SELECT fst.date_key, dd.full_date, fst.product_key, dp.product_name, SUM(fs.total_amount) as actual_revenue, SUM(fst.target_revenue) as target_revenue, (SUM(fs.total_amount) - SUM(fst.target_revenue)) / NULLIF(SUM(fst.target_revenue), 0) * 100 as variance_percent FROM fact_sales_target fst JOIN fact_sales fs ON fst.date_key = fs.date_key AND fst.product_key = fs.product_key JOIN dim_date dd ON fst.date_key = dd.date_key JOIN dim_product dp ON fst.product_key = dp.product_key GROUP BY fst.date_key, dd.full_date, fst.product_key, dp.product_name"
+    },
+    {
+      "name": "target_achievement",
+      "sql": "SELECT product_key, product_name, actual_revenue, target_revenue, variance_percent, CASE WHEN variance_percent >= 10 THEN 'Exceeds' WHEN variance_percent >= 0 THEN 'Meets' WHEN variance_percent >= -10 THEN 'Close' ELSE 'Misses' END as achievement_status FROM sales_vs_target"
+    },
+    {
+      "name": "best_performing_promotions",
+      "sql": "SELECT promotion_key, promotion_id, promotion_name, promotion_type, revenue_with_promo, total_discount_given, net_promo_profit FROM promotion_performance WHERE net_promo_profit > 0 ORDER BY net_promo_profit DESC LIMIT 20"
+    },
+    {
+      "name": "promotion_roi",
+      "sql": "SELECT promotion_key, promotion_id, promotion_name, revenue_with_promo, promotion_cost, (revenue_with_promo - promotion_cost) / NULLIF(promotion_cost, 0) * 100 as roi_percent FROM promotion_performance WHERE promotion_cost > 0"
+    },
+    {
+      "name": "weekend_vs_weekday",
+      "sql": "SELECT dd.is_weekend, SUM(ss.transaction_count) as transactions, SUM(ss.net_sales) as revenue, AVG(ss.avg_margin_pct) as avg_margin FROM sales_summary ss JOIN dim_date dd ON ss.date_key = dd.date_key GROUP BY dd.is_weekend"
+    },
+    {
+      "name": "holiday_sales",
+      "sql": "SELECT dd.holiday_name, SUM(ss.transaction_count) as transactions, SUM(ss.net_sales) as revenue FROM sales_summary ss JOIN dim_date dd ON ss.date_key = dd.date_key WHERE dd.is_holiday = 1 GROUP BY dd.holiday_name"
+    },
+    {
+      "name": "seasonal_trends",
+      "sql": "SELECT quarter, AVG(net_sales) as avg_quarterly_sales FROM quarterly_sales GROUP BY quarter"
+    },
+    {
+      "name": "same_store_sales",
+      "sql": "SELECT ss.store_key, ss.store_id, ss.store_name, ss.year, ss_prev.year as prior_year, SUM(ss.net_sales) as current_year_sales, SUM(ss_prev.net_sales) as prior_year_sales, (SUM(ss.net_sales) - SUM(ss_prev.net_sales)) / NULLIF(SUM(ss_prev.net_sales), 0) * 100 as yoy_growth_percent FROM (SELECT fs.store_key, ds.store_id, ds.store_name, dd.year, SUM(fs.total_amount) as net_sales FROM fact_sales fs JOIN dim_store ds ON fs.store_key = ds.store_key JOIN dim_date dd ON fs.date_key = dd.date_key GROUP BY fs.store_key, ds.store_id, ds.store_name, dd.year) ss JOIN (SELECT fs.store_key, ds.store_id, ds.store_name, dd.year, SUM(fs.total_amount) as net_sales FROM fact_sales fs JOIN dim_store ds ON fs.store_key = ds.store_key JOIN dim_date dd ON fs.date_key = dd.date_key GROUP BY fs.store_key, ds.store_id, ds.store_name, dd.year) ss_prev ON ss.store_key = ss_prev.store_key AND ss.year = ss_prev.year + 1 GROUP BY ss.store_key, ss.store_id, ss.store_name, ss.year, ss_prev.year"
+    },
+    {
+      "name": "basket_analysis",
+      "sql": "SELECT fs.transaction_id, COUNT(DISTINCT fs.product_key) as unique_products, SUM(fs.quantity) as total_items, SUM(fs.total_amount) as basket_value FROM fact_sales fs GROUP BY fs.transaction_id"
+    },
+    {
+      "name": "average_basket_value",
+      "sql": "SELECT dd.year, dd.month, AVG(ba.basket_value) as avg_basket_value FROM basket_analysis ba JOIN fact_sales fs ON ba.transaction_id = fs.transaction_id JOIN dim_date dd ON fs.date_key = dd.date_key GROUP BY dd.year, dd.month"
+    },
+    {
+      "name": "cross_sell_opportunities",
+      "sql": "SELECT fs1.product_key as product_a, dp1.product_name as product_a_name, fs2.product_key as product_b, dp2.product_name as product_b_name, COUNT(*) as co_purchase_count FROM fact_sales fs1 JOIN fact_sales fs2 ON fs1.transaction_id = fs2.transaction_id AND fs1.product_key < fs2.product_key JOIN dim_product dp1 ON fs1.product_key = dp1.product_key JOIN dim_product dp2 ON fs2.product_key = dp2.product_key GROUP BY fs1.product_key, dp1.product_name, fs2.product_key, dp2.product_name HAVING COUNT(*) > 50"
+    },
+    {
+      "name": "payment_method_analysis",
+      "sql": "SELECT payment_method, COUNT(DISTINCT transaction_id) as transaction_count, SUM(total_amount) as total_revenue FROM fact_sales GROUP BY payment_method"
+    },
+    {
+      "name": "return_analysis",
+      "sql": "SELECT dd.year, dd.month, COUNT(*) as return_count, SUM(fs.total_amount) as return_value FROM fact_sales fs JOIN dim_date dd ON fs.date_key = dd.date_key WHERE fs.return_flag = 1 GROUP BY dd.year, dd.month"
+    },
+    {
+      "name": "return_rate",
+      "sql": "SELECT dd.year, dd.month, SUM(CASE WHEN fs.return_flag = 1 THEN 1 ELSE 0 END) as returns, COUNT(*) as total_transactions, SUM(CASE WHEN fs.return_flag = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*) as return_rate_percent FROM fact_sales fs JOIN dim_date dd ON fs.date_key = dd.date_key GROUP BY dd.year, dd.month"
+    },
+    {
+      "name": "high_return_products",
+      "sql": "SELECT fs.product_key, dp.product_name, COUNT(*) as return_count, SUM(fs.total_amount) as return_value FROM fact_sales fs JOIN dim_product dp ON fs.product_key = dp.product_key WHERE fs.return_flag = 1 GROUP BY fs.product_key, dp.product_name HAVING COUNT(*) > 10 ORDER BY return_count DESC"
+    },
+    {
+      "name": "executive_kpi_dashboard",
+      "sql": "SELECT (SELECT SUM(net_sales) FROM daily_sales) as total_revenue, (SELECT SUM(total_profit) FROM daily_sales) as total_profit, (SELECT COUNT(DISTINCT customer_key) FROM customer_sales) as total_customers, (SELECT COUNT(DISTINCT product_key) FROM product_sales) as total_products, (SELECT COUNT(DISTINCT store_key) FROM store_sales) as total_stores, (SELECT AVG(avg_basket_value) FROM average_basket_value) as avg_basket_value"
+    },
+    {
+      "name": "sales_operations_dashboard",
+      "sql": "SELECT ds.date, ds.transaction_count, ds.net_sales, ds.total_profit, ws.net_sales as weekly_sales, ms.net_sales as monthly_sales FROM daily_sales ds LEFT JOIN weekly_sales ws ON ds.year = ws.year AND ds.full_date >= ws.week_begin_date AND ds.full_date < DATE_ADD('day', 7, ws.week_begin_date) LEFT JOIN monthly_sales ms ON ds.year = ms.year AND ds.month = ms.month"
+    },
+    {
+      "name": "customer_insights_dashboard",
+      "sql": "SELECT (SELECT COUNT(*) FROM top_customers) as top_customer_count, (SELECT COUNT(*) FROM at_risk_customers) as at_risk_count, (SELECT COUNT(*) FROM new_customers) as new_customer_count, (SELECT AVG(total_spent) FROM customer_lifetime_value) as avg_customer_ltv"
+    },
+    {
+      "name": "inventory_management_dashboard",
+      "sql": "SELECT (SELECT COUNT(*) FROM stockouts) as stockout_count, (SELECT COUNT(*) FROM low_stock_alerts) as low_stock_count, (SELECT COUNT(*) FROM overstock_items) as overstock_count, (SELECT SUM(total_inventory_value) FROM inventory_value_by_store) as total_inventory_value"
+    },
+    {
+      "name": "marketing_performance_dashboard",
+      "sql": "SELECT pp.promotion_name, pp.revenue_with_promo, pp.total_discount_given, pp.net_promo_profit, pr.roi_percent FROM promotion_performance pp LEFT JOIN promotion_roi pr ON pp.promotion_key = pr.promotion_key ORDER BY pp.net_promo_profit DESC"
+    }
+  ]
+}

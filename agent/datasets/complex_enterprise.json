@@ -1,0 +1,513 @@
+{
+  "description": "Large enterprise data warehouse with 150+ views across multiple business domains",
+  "views": [
+    {
+      "name": "raw_customers",
+      "sql": "SELECT * FROM source_systems.customers"
+    },
+    {
+      "name": "raw_orders",
+      "sql": "SELECT * FROM source_systems.orders"
+    },
+    {
+      "name": "raw_products",
+      "sql": "SELECT * FROM source_systems.products"
+    },
+    {
+      "name": "raw_employees",
+      "sql": "SELECT * FROM source_systems.employees"
+    },
+    {
+      "name": "raw_stores",
+      "sql": "SELECT * FROM source_systems.stores"
+    },
+    {
+      "name": "raw_suppliers",
+      "sql": "SELECT * FROM source_systems.suppliers"
+    },
+    {
+      "name": "raw_inventory",
+      "sql": "SELECT * FROM source_systems.inventory"
+    },
+    {
+      "name": "raw_shipments",
+      "sql": "SELECT * FROM source_systems.shipments"
+    },
+    {
+      "name": "raw_payments",
+      "sql": "SELECT * FROM source_systems.payments"
+    },
+    {
+      "name": "raw_refunds",
+      "sql": "SELECT * FROM source_systems.refunds"
+    },
+    {
+      "name": "stg_customers",
+      "sql": "SELECT customer_id, UPPER(name) as name, email, phone, address, city, state, country, signup_date FROM raw_customers WHERE customer_id IS NOT NULL"
+    },
+    {
+      "name": "stg_orders",
+      "sql": "SELECT order_id, customer_id, store_id, employee_id, order_date, status FROM raw_orders WHERE order_id IS NOT NULL"
+    },
+    {
+      "name": "stg_products",
+      "sql": "SELECT product_id, name, category, subcategory, brand, supplier_id, cost, price FROM raw_products WHERE product_id IS NOT NULL"
+    },
+    {
+      "name": "stg_employees",
+      "sql": "SELECT employee_id, name, department, position, manager_id, hire_date, salary FROM raw_employees WHERE employee_id IS NOT NULL"
+    },
+    {
+      "name": "stg_stores",
+      "sql": "SELECT store_id, name, city, state, country, region, manager_id, opening_date FROM raw_stores WHERE store_id IS NOT NULL"
+    },
+    {
+      "name": "stg_suppliers",
+      "sql": "SELECT supplier_id, name, contact_email, country, rating FROM raw_suppliers WHERE supplier_id IS NOT NULL"
+    },
+    {
+      "name": "stg_inventory",
+      "sql": "SELECT inventory_id, product_id, store_id, quantity, last_updated FROM raw_inventory WHERE inventory_id IS NOT NULL"
+    },
+    {
+      "name": "stg_shipments",
+      "sql": "SELECT shipment_id, order_id, shipment_date, carrier, tracking_number, delivered_date FROM raw_shipments WHERE shipment_id IS NOT NULL"
+    },
+    {
+      "name": "stg_payments",
+      "sql": "SELECT payment_id, order_id, amount, payment_method, payment_date FROM raw_payments WHERE payment_id IS NOT NULL"
+    },
+    {
+      "name": "stg_refunds",
+      "sql": "SELECT refund_id, order_id, amount, reason, refund_date FROM raw_refunds WHERE refund_id IS NOT NULL"
+    },
+    {
+      "name": "dim_customers",
+      "sql": "SELECT customer_id, name, email, phone, address, city, state, country, signup_date, CURRENT_TIMESTAMP as last_updated FROM stg_customers"
+    },
+    {
+      "name": "dim_products",
+      "sql": "SELECT product_id, name, category, subcategory, brand, supplier_id, cost, price, (price - cost) as margin FROM stg_products"
+    },
+    {
+      "name": "dim_employees",
+      "sql": "SELECT employee_id, name, department, position, manager_id, hire_date, salary, DATE_DIFF('year', hire_date, CURRENT_DATE) as years_of_service FROM stg_employees"
+    },
+    {
+      "name": "dim_stores",
+      "sql": "SELECT store_id, name, city, state, country, region, manager_id, opening_date FROM stg_stores"
+    },
+    {
+      "name": "dim_suppliers",
+      "sql": "SELECT supplier_id, name, contact_email, country, rating FROM stg_suppliers"
+    },
+    {
+      "name": "dim_dates",
+      "sql": "SELECT date_id, date, year, quarter, month, week, day_of_week, day_of_year, is_weekend, is_holiday FROM reference.date_dimension"
+    },
+    {
+      "name": "fact_orders",
+      "sql": "SELECT o.order_id, o.customer_id, o.store_id, o.employee_id, o.order_date, o.status FROM stg_orders o"
+    },
+    {
+      "name": "fact_order_items",
+      "sql": "SELECT order_item_id, order_id, product_id, quantity, unit_price FROM source_systems.order_items"
+    },
+    {
+      "name": "fact_inventory",
+      "sql": "SELECT i.inventory_id, i.product_id, i.store_id, i.quantity, i.last_updated FROM stg_inventory i"
+    },
+    {
+      "name": "fact_shipments",
+      "sql": "SELECT s.shipment_id, s.order_id, s.shipment_date, s.carrier, s.tracking_number, s.delivered_date FROM stg_shipments s"
+    },
+    {
+      "name": "fact_payments",
+      "sql": "SELECT p.payment_id, p.order_id, p.amount, p.payment_method, p.payment_date FROM stg_payments p"
+    },
+    {
+      "name": "fact_refunds",
+      "sql": "SELECT r.refund_id, r.order_id, r.amount, r.reason, r.refund_date FROM stg_refunds r"
+    },
+    {
+      "name": "customer_orders",
+      "sql": "SELECT c.customer_id, c.name, o.order_id, o.order_date, o.status FROM dim_customers c JOIN fact_orders o ON c.customer_id = o.customer_id"
+    },
+    {
+      "name": "order_details",
+      "sql": "SELECT o.order_id, o.order_date, oi.product_id, oi.quantity, oi.unit_price FROM fact_orders o JOIN fact_order_items oi ON o.order_id = oi.order_id"
+    },
+    {
+      "name": "product_sales",
+      "sql": "SELECT p.product_id, p.name, p.category, SUM(oi.quantity) as units_sold, SUM(oi.quantity * oi.unit_price) as revenue FROM dim_products p JOIN fact_order_items oi ON p.product_id = oi.product_id GROUP BY p.product_id, p.name, p.category"
+    },
+    {
+      "name": "store_performance",
+      "sql": "SELECT s.store_id, s.name, s.region, COUNT(o.order_id) as order_count FROM dim_stores s JOIN fact_orders o ON s.store_id = o.store_id GROUP BY s.store_id, s.name, s.region"
+    },
+    {
+      "name": "employee_sales",
+      "sql": "SELECT e.employee_id, e.name, e.department, COUNT(o.order_id) as orders_processed FROM dim_employees e JOIN fact_orders o ON e.employee_id = o.employee_id GROUP BY e.employee_id, e.name, e.department"
+    },
+    {
+      "name": "supplier_products",
+      "sql": "SELECT s.supplier_id, s.name, COUNT(p.product_id) as product_count FROM dim_suppliers s JOIN dim_products p ON s.supplier_id = p.supplier_id GROUP BY s.supplier_id, s.name"
+    },
+    {
+      "name": "inventory_levels",
+      "sql": "SELECT st.store_id, st.name, p.product_id, p.name as product_name, i.quantity FROM dim_stores st JOIN fact_inventory i ON st.store_id = i.store_id JOIN dim_products p ON i.product_id = p.product_id"
+    },
+    {
+      "name": "order_shipments",
+      "sql": "SELECT o.order_id, o.order_date, s.shipment_date, s.delivered_date, DATE_DIFF('day', s.shipment_date, s.delivered_date) as delivery_days FROM fact_orders o JOIN fact_shipments s ON o.order_id = s.order_id"
+    },
+    {
+      "name": "order_payments",
+      "sql": "SELECT o.order_id, o.order_date, p.payment_id, p.amount, p.payment_method FROM fact_orders o JOIN fact_payments p ON o.order_id = p.order_id"
+    },
+    {
+      "name": "order_refunds",
+      "sql": "SELECT o.order_id, o.order_date, r.refund_id, r.amount, r.reason FROM fact_orders o JOIN fact_refunds r ON o.order_id = r.order_id"
+    },
+    {
+      "name": "daily_orders",
+      "sql": "SELECT d.date, COUNT(o.order_id) as order_count FROM dim_dates d JOIN fact_orders o ON DATE(o.order_date) = d.date GROUP BY d.date"
+    },
+    {
+      "name": "daily_revenue",
+      "sql": "SELECT d.date, SUM(p.amount) as revenue FROM dim_dates d JOIN fact_payments p ON DATE(p.payment_date) = d.date GROUP BY d.date"
+    },
+    {
+      "name": "monthly_orders",
+      "sql": "SELECT d.year, d.month, COUNT(o.order_id) as order_count FROM dim_dates d JOIN fact_orders o ON DATE(o.order_date) = d.date GROUP BY d.year, d.month"
+    },
+    {
+      "name": "monthly_revenue",
+      "sql": "SELECT d.year, d.month, SUM(p.amount) as revenue FROM dim_dates d JOIN fact_payments p ON DATE(p.payment_date) = d.date GROUP BY d.year, d.month"
+    },
+    {
+      "name": "quarterly_sales",
+      "sql": "SELECT d.year, d.quarter, SUM(p.amount) as revenue, COUNT(DISTINCT o.order_id) as orders FROM dim_dates d JOIN fact_orders o ON DATE(o.order_date) = d.date JOIN fact_payments p ON o.order_id = p.order_id GROUP BY d.year, d.quarter"
+    },
+    {
+      "name": "yearly_trends",
+      "sql": "SELECT d.year, SUM(p.amount) as revenue, COUNT(DISTINCT o.order_id) as orders, COUNT(DISTINCT c.customer_id) as customers FROM dim_dates d JOIN fact_orders o ON DATE(o.order_date) = d.date JOIN fact_payments p ON o.order_id = p.order_id JOIN dim_customers c ON o.customer_id = c.customer_id GROUP BY d.year"
+    },
+    {
+      "name": "customer_lifetime_value",
+      "sql": "SELECT c.customer_id, c.name, COUNT(o.order_id) as order_count, SUM(p.amount) as lifetime_value FROM dim_customers c JOIN fact_orders o ON c.customer_id = o.customer_id JOIN fact_payments p ON o.order_id = p.order_id GROUP BY c.customer_id, c.name"
+    },
+    {
+      "name": "customer_segments",
+      "sql": "SELECT customer_id, name, lifetime_value, CASE WHEN lifetime_value > 50000 THEN 'Platinum' WHEN lifetime_value > 10000 THEN 'Gold' WHEN lifetime_value > 1000 THEN 'Silver' ELSE 'Bronze' END as segment FROM customer_lifetime_value"
+    },
+    {
+      "name": "top_customers",
+      "sql": "SELECT customer_id, name, lifetime_value, segment FROM customer_segments ORDER BY lifetime_value DESC LIMIT 100"
+    },
+    {
+      "name": "vip_customers",
+      "sql": "SELECT customer_id, name, lifetime_value FROM customer_segments WHERE segment IN ('Platinum', 'Gold')"
+    },
+    {
+      "name": "at_risk_customers",
+      "sql": "SELECT c.customer_id, c.name, MAX(o.order_date) as last_order_date, DATE_DIFF('day', MAX(o.order_date), CURRENT_DATE) as days_since_last_order FROM dim_customers c JOIN fact_orders o ON c.customer_id = o.customer_id GROUP BY c.customer_id, c.name HAVING DATE_DIFF('day', MAX(o.order_date), CURRENT_DATE) > 180"
+    },
+    {
+      "name": "new_customers",
+      "sql": "SELECT customer_id, name, signup_date FROM dim_customers WHERE signup_date >= DATE_ADD('month', -1, CURRENT_DATE)"
+    },
+    {
+      "name": "repeat_customers",
+      "sql": "SELECT customer_id, name, order_count FROM customer_lifetime_value WHERE order_count > 1"
+    },
+    {
+      "name": "customer_cohorts",
+      "sql": "SELECT DATE_TRUNC('month', signup_date) as cohort_month, COUNT(*) as customer_count FROM dim_customers GROUP BY DATE_TRUNC('month', signup_date)"
+    },
+    {
+      "name": "cohort_retention",
+      "sql": "SELECT cc.cohort_month, DATE_DIFF('month', cc.cohort_month, o.order_date) as months_since_signup, COUNT(DISTINCT o.customer_id) as active_customers FROM customer_cohorts cc JOIN dim_customers c ON DATE_TRUNC('month', c.signup_date) = cc.cohort_month JOIN fact_orders o ON c.customer_id = o.customer_id GROUP BY cc.cohort_month, DATE_DIFF('month', cc.cohort_month, o.order_date)"
+    },
+    {
+      "name": "product_categories",
+      "sql": "SELECT category, COUNT(*) as product_count, AVG(price) as avg_price FROM dim_products GROUP BY category"
+    },
+    {
+      "name": "category_revenue",
+      "sql": "SELECT p.category, SUM(ps.revenue) as total_revenue FROM dim_products p JOIN product_sales ps ON p.product_id = ps.product_id GROUP BY p.category"
+    },
+    {
+      "name": "top_products",
+      "sql": "SELECT product_id, name, category, revenue FROM product_sales ORDER BY revenue DESC LIMIT 100"
+    },
+    {
+      "name": "slow_moving_products",
+      "sql": "SELECT product_id, name, category, units_sold FROM product_sales WHERE units_sold < 10 ORDER BY units_sold"
+    },
+    {
+      "name": "out_of_stock",
+      "sql": "SELECT store_id, product_id, product_name FROM inventory_levels WHERE quantity = 0"
+    },
+    {
+      "name": "low_stock_alerts",
+      "sql": "SELECT store_id, product_id, product_name, quantity FROM inventory_levels WHERE quantity < 10 AND quantity > 0"
+    },
+    {
+      "name": "inventory_value",
+      "sql": "SELECT st.store_id, st.name, SUM(p.cost * il.quantity) as inventory_value FROM dim_stores st JOIN inventory_levels il ON st.store_id = il.store_id JOIN dim_products p ON il.product_id = p.product_id GROUP BY st.store_id, st.name"
+    },
+    {
+      "name": "product_margins",
+      "sql": "SELECT product_id, name, category, cost, price, margin, (margin / price) * 100 as margin_percent FROM dim_products"
+    },
+    {
+      "name": "high_margin_products",
+      "sql": "SELECT product_id, name, category, margin_percent FROM product_margins WHERE margin_percent > 50"
+    },
+    {
+      "name": "store_regions",
+      "sql": "SELECT region, COUNT(*) as store_count FROM dim_stores GROUP BY region"
+    },
+    {
+      "name": "regional_performance",
+      "sql": "SELECT s.region, SUM(sp.order_count) as total_orders FROM dim_stores s JOIN store_performance sp ON s.store_id = sp.store_id GROUP BY s.region"
+    },
+    {
+      "name": "regional_revenue",
+      "sql": "SELECT s.region, SUM(p.amount) as revenue FROM dim_stores s JOIN fact_orders o ON s.store_id = o.store_id JOIN fact_payments p ON o.order_id = p.order_id GROUP BY s.region"
+    },
+    {
+      "name": "top_stores",
+      "sql": "SELECT store_id, name, region, order_count FROM store_performance ORDER BY order_count DESC LIMIT 20"
+    },
+    {
+      "name": "underperforming_stores",
+      "sql": "SELECT store_id, name, region, order_count FROM store_performance WHERE order_count < (SELECT AVG(order_count) FROM store_performance)"
+    },
+    {
+      "name": "employee_departments",
+      "sql": "SELECT department, COUNT(*) as employee_count, AVG(salary) as avg_salary FROM dim_employees GROUP BY department"
+    },
+    {
+      "name": "department_performance",
+      "sql": "SELECT e.department, SUM(es.orders_processed) as total_orders FROM dim_employees e JOIN employee_sales es ON e.employee_id = es.employee_id GROUP BY e.department"
+    },
+    {
+      "name": "top_employees",
+      "sql": "SELECT employee_id, name, department, orders_processed FROM employee_sales ORDER BY orders_processed DESC LIMIT 50"
+    },
+    {
+      "name": "employee_hierarchy",
+      "sql": "SELECT e.employee_id, e.name, e.position, m.name as manager_name FROM dim_employees e LEFT JOIN dim_employees m ON e.manager_id = m.employee_id"
+    },
+    {
+      "name": "long_tenure_employees",
+      "sql": "SELECT employee_id, name, department, hire_date, years_of_service FROM dim_employees WHERE years_of_service > 10"
+    },
+    {
+      "name": "supplier_ratings",
+      "sql": "SELECT supplier_id, name, country, rating FROM dim_suppliers ORDER BY rating DESC"
+    },
+    {
+      "name": "supplier_performance",
+      "sql": "SELECT s.supplier_id, s.name, sp.product_count, AVG(p.price) as avg_product_price FROM dim_suppliers s JOIN supplier_products sp ON s.supplier_id = sp.supplier_id JOIN dim_products p ON s.supplier_id = p.supplier_id GROUP BY s.supplier_id, s.name, sp.product_count"
+    },
+    {
+      "name": "international_suppliers",
+      "sql": "SELECT supplier_id, name, country FROM dim_suppliers WHERE country != 'USA'"
+    },
+    {
+      "name": "shipping_performance",
+      "sql": "SELECT carrier, AVG(delivery_days) as avg_delivery_days, COUNT(*) as shipment_count FROM order_shipments GROUP BY carrier"
+    },
+    {
+      "name": "late_shipments",
+      "sql": "SELECT order_id, order_date, shipment_date, delivered_date, delivery_days FROM order_shipments WHERE delivery_days > 7"
+    },
+    {
+      "name": "payment_methods",
+      "sql": "SELECT payment_method, COUNT(*) as transaction_count, SUM(amount) as total_amount FROM fact_payments GROUP BY payment_method"
+    },
+    {
+      "name": "failed_payments",
+      "sql": "SELECT o.order_id, o.customer_id, o.order_date FROM fact_orders o LEFT JOIN fact_payments p ON o.order_id = p.order_id WHERE p.payment_id IS NULL"
+    },
+    {
+      "name": "refund_analysis",
+      "sql": "SELECT r.reason, COUNT(*) as refund_count, SUM(r.amount) as total_refunded FROM fact_refunds r GROUP BY r.reason"
+    },
+    {
+      "name": "high_refund_products",
+      "sql": "SELECT p.product_id, p.name, COUNT(r.refund_id) as refund_count FROM dim_products p JOIN fact_order_items oi ON p.product_id = oi.product_id JOIN fact_refunds r ON oi.order_id = r.order_id GROUP BY p.product_id, p.name HAVING COUNT(r.refund_id) > 5"
+    },
+    {
+      "name": "weekend_sales",
+      "sql": "SELECT d.date, COUNT(o.order_id) as order_count, SUM(p.amount) as revenue FROM dim_dates d JOIN fact_orders o ON DATE(o.order_date) = d.date JOIN fact_payments p ON o.order_id = p.order_id WHERE d.is_weekend = true GROUP BY d.date"
+    },
+    {
+      "name": "holiday_sales",
+      "sql": "SELECT d.date, COUNT(o.order_id) as order_count, SUM(p.amount) as revenue FROM dim_dates d JOIN fact_orders o ON DATE(o.order_date) = d.date JOIN fact_payments p ON o.order_id = p.order_id WHERE d.is_holiday = true GROUP BY d.date"
+    },
+    {
+      "name": "seasonal_trends",
+      "sql": "SELECT d.quarter, AVG(dr.revenue) as avg_revenue FROM dim_dates d JOIN daily_revenue dr ON d.date = dr.date GROUP BY d.quarter"
+    },
+    {
+      "name": "month_over_month_growth",
+      "sql": "SELECT year, month, revenue, LAG(revenue) OVER (ORDER BY year, month) as prev_month_revenue, (revenue - LAG(revenue) OVER (ORDER BY year, month)) / LAG(revenue) OVER (ORDER BY year, month) * 100 as growth_percent FROM monthly_revenue"
+    },
+    {
+      "name": "year_over_year_growth",
+      "sql": "SELECT year, revenue, LAG(revenue) OVER (ORDER BY year) as prev_year_revenue, (revenue - LAG(revenue) OVER (ORDER BY year)) / LAG(revenue) OVER (ORDER BY year) * 100 as growth_percent FROM yearly_trends"
+    },
+    {
+      "name": "customer_acquisition_cost",
+      "sql": "SELECT cc.cohort_month, cc.customer_count, SUM(p.amount) / cc.customer_count as revenue_per_customer FROM customer_cohorts cc JOIN dim_customers c ON DATE_TRUNC('month', c.signup_date) = cc.cohort_month JOIN fact_orders o ON c.customer_id = o.customer_id JOIN fact_payments p ON o.order_id = p.order_id GROUP BY cc.cohort_month, cc.customer_count"
+    },
+    {
+      "name": "average_order_value",
+      "sql": "SELECT d.year, d.month, SUM(p.amount) / COUNT(DISTINCT o.order_id) as aov FROM dim_dates d JOIN fact_orders o ON DATE(o.order_date) = d.date JOIN fact_payments p ON o.order_id = p.order_id GROUP BY d.year, d.month"
+    },
+    {
+      "name": "basket_size",
+      "sql": "SELECT o.order_id, COUNT(oi.order_item_id) as item_count, SUM(oi.quantity) as total_units FROM fact_orders o JOIN fact_order_items oi ON o.order_id = oi.order_id GROUP BY o.order_id"
+    },
+    {
+      "name": "cross_sell_analysis",
+      "sql": "SELECT oi1.product_id as product_a, oi2.product_id as product_b, COUNT(*) as co_occurrence_count FROM fact_order_items oi1 JOIN fact_order_items oi2 ON oi1.order_id = oi2.order_id AND oi1.product_id < oi2.product_id GROUP BY oi1.product_id, oi2.product_id HAVING COUNT(*) > 10"
+    },
+    {
+      "name": "customer_geography",
+      "sql": "SELECT country, state, city, COUNT(*) as customer_count FROM dim_customers GROUP BY country, state, city"
+    },
+    {
+      "name": "geographic_revenue",
+      "sql": "SELECT c.country, c.state, SUM(p.amount) as revenue FROM dim_customers c JOIN fact_orders o ON c.customer_id = o.customer_id JOIN fact_payments p ON o.order_id = p.order_id GROUP BY c.country, c.state"
+    },
+    {
+      "name": "brand_performance",
+      "sql": "SELECT brand, SUM(ps.revenue) as total_revenue, SUM(ps.units_sold) as total_units FROM dim_products p JOIN product_sales ps ON p.product_id = ps.product_id GROUP BY brand"
+    },
+    {
+      "name": "inventory_turnover",
+      "sql": "SELECT p.product_id, p.name, ps.units_sold, il.quantity, CASE WHEN il.quantity > 0 THEN ps.units_sold / il.quantity ELSE 0 END as turnover_ratio FROM dim_products p JOIN product_sales ps ON p.product_id = ps.product_id JOIN inventory_levels il ON p.product_id = il.product_id"
+    },
+    {
+      "name": "stockout_frequency",
+      "sql": "SELECT store_id, COUNT(DISTINCT product_id) as stockout_count FROM out_of_stock GROUP BY store_id"
+    },
+    {
+      "name": "reorder_alerts",
+      "sql": "SELECT ls.store_id, ls.product_id, ls.product_name, ls.quantity, it.turnover_ratio FROM low_stock_alerts ls JOIN inventory_turnover it ON ls.product_id = it.product_id WHERE it.turnover_ratio > 2"
+    },
+    {
+      "name": "employee_productivity",
+      "sql": "SELECT e.employee_id, e.name, es.orders_processed, e.salary, es.orders_processed / e.salary * 1000 as orders_per_1k_salary FROM dim_employees e JOIN employee_sales es ON e.employee_id = es.employee_id"
+    },
+    {
+      "name": "store_staffing",
+      "sql": "SELECT s.store_id, s.name, COUNT(e.employee_id) as employee_count FROM dim_stores s LEFT JOIN dim_employees e ON s.store_id IN (SELECT store_id FROM fact_orders WHERE employee_id = e.employee_id) GROUP BY s.store_id, s.name"
+    },
+    {
+      "name": "customer_preferences",
+      "sql": "SELECT c.customer_id, c.name, p.category, COUNT(*) as purchase_count FROM dim_customers c JOIN fact_orders o ON c.customer_id = o.customer_id JOIN fact_order_items oi ON o.order_id = oi.order_id JOIN dim_products p ON oi.product_id = p.product_id GROUP BY c.customer_id, c.name, p.category"
+    },
+    {
+      "name": "loyalty_program_candidates",
+      "sql": "SELECT customer_id, name, order_count, lifetime_value FROM customer_lifetime_value WHERE order_count >= 5 AND lifetime_value >= 1000"
+    },
+    {
+      "name": "churn_risk_score",
+      "sql": "SELECT c.customer_id, c.name, clv.order_count, arc.days_since_last_order, CASE WHEN arc.days_since_last_order > 365 THEN 'High' WHEN arc.days_since_last_order > 180 THEN 'Medium' ELSE 'Low' END as churn_risk FROM dim_customers c JOIN customer_lifetime_value clv ON c.customer_id = clv.customer_id LEFT JOIN at_risk_customers arc ON c.customer_id = arc.customer_id"
+    },
+    {
+      "name": "product_affinity",
+      "sql": "SELECT cp.customer_id, cp.category, cp.purchase_count, RANK() OVER (PARTITION BY cp.customer_id ORDER BY cp.purchase_count DESC) as category_rank FROM customer_preferences cp"
+    },
+    {
+      "name": "market_basket_analysis",
+      "sql": "SELECT csa.product_a, pa.name as product_a_name, csa.product_b, pb.name as product_b_name, csa.co_occurrence_count FROM cross_sell_analysis csa JOIN dim_products pa ON csa.product_a = pa.product_id JOIN dim_products pb ON csa.product_b = pb.product_id ORDER BY csa.co_occurrence_count DESC"
+    },
+    {
+      "name": "revenue_attribution",
+      "sql": "SELECT e.employee_id, e.name, s.store_id, s.name as store_name, SUM(p.amount) as attributed_revenue FROM dim_employees e JOIN fact_orders o ON e.employee_id = o.employee_id JOIN dim_stores s ON o.store_id = s.store_id JOIN fact_payments p ON o.order_id = p.order_id GROUP BY e.employee_id, e.name, s.store_id, s.name"
+    },
+    {
+      "name": "profit_centers",
+      "sql": "SELECT s.store_id, s.name, SUM(pm.margin * oi.quantity) as total_profit FROM dim_stores s JOIN fact_orders o ON s.store_id = o.store_id JOIN fact_order_items oi ON o.order_id = oi.order_id JOIN product_margins pm ON oi.product_id = pm.product_id GROUP BY s.store_id, s.name"
+    },
+    {
+      "name": "cost_centers",
+      "sql": "SELECT department, SUM(salary) as total_salary_cost, COUNT(*) as employee_count FROM dim_employees GROUP BY department"
+    },
+    {
+      "name": "roi_by_region",
+      "sql": "SELECT rr.region, rr.revenue, cc.total_salary_cost, (rr.revenue - cc.total_salary_cost) / cc.total_salary_cost * 100 as roi_percent FROM regional_revenue rr JOIN cost_centers cc ON 1=1"
+    },
+    {
+      "name": "supplier_diversity",
+      "sql": "SELECT country, COUNT(*) as supplier_count FROM dim_suppliers GROUP BY country"
+    },
+    {
+      "name": "supply_chain_risk",
+      "sql": "SELECT p.product_id, p.name, s.country, COUNT(DISTINCT s.supplier_id) as supplier_count FROM dim_products p JOIN dim_suppliers s ON p.supplier_id = s.supplier_id GROUP BY p.product_id, p.name, s.country HAVING COUNT(DISTINCT s.supplier_id) = 1"
+    },
+    {
+      "name": "delivery_reliability",
+      "sql": "SELECT carrier, COUNT(*) as on_time_count, (SELECT COUNT(*) FROM order_shipments WHERE carrier = os.carrier) as total_count, COUNT(*) * 100.0 / (SELECT COUNT(*) FROM order_shipments WHERE carrier = os.carrier) as on_time_percent FROM order_shipments os WHERE delivery_days <= 5 GROUP BY carrier"
+    },
+    {
+      "name": "payment_success_rate",
+      "sql": "SELECT DATE(o.order_date) as date, COUNT(o.order_id) as total_orders, COUNT(p.payment_id) as successful_payments, COUNT(p.payment_id) * 100.0 / COUNT(o.order_id) as success_rate FROM fact_orders o LEFT JOIN fact_payments p ON o.order_id = p.order_id GROUP BY DATE(o.order_date)"
+    },
+    {
+      "name": "refund_rate",
+      "sql": "SELECT DATE(o.order_date) as date, COUNT(o.order_id) as total_orders, COUNT(r.refund_id) as refunds, COUNT(r.refund_id) * 100.0 / COUNT(o.order_id) as refund_rate FROM fact_orders o LEFT JOIN fact_refunds r ON o.order_id = r.order_id GROUP BY DATE(o.order_date)"
+    },
+    {
+      "name": "net_revenue",
+      "sql": "SELECT dr.date, dr.revenue, COALESCE(SUM(r.amount), 0) as refunds, dr.revenue - COALESCE(SUM(r.amount), 0) as net_revenue FROM daily_revenue dr LEFT JOIN fact_refunds r ON DATE(r.refund_date) = dr.date GROUP BY dr.date, dr.revenue"
+    },
+    {
+      "name": "customer_360",
+      "sql": "SELECT c.customer_id, c.name, c.email, c.country, cs.segment, clv.order_count, clv.lifetime_value, arc.days_since_last_order, crs.churn_risk FROM dim_customers c LEFT JOIN customer_segments cs ON c.customer_id = cs.customer_id LEFT JOIN customer_lifetime_value clv ON c.customer_id = clv.customer_id LEFT JOIN at_risk_customers arc ON c.customer_id = arc.customer_id LEFT JOIN churn_risk_score crs ON c.customer_id = crs.customer_id"
+    },
+    {
+      "name": "product_360",
+      "sql": "SELECT p.product_id, p.name, p.category, p.brand, ps.units_sold, ps.revenue, pm.margin_percent, il.quantity as current_stock, it.turnover_ratio FROM dim_products p LEFT JOIN product_sales ps ON p.product_id = ps.product_id LEFT JOIN product_margins pm ON p.product_id = pm.product_id LEFT JOIN inventory_levels il ON p.product_id = il.product_id LEFT JOIN inventory_turnover it ON p.product_id = it.product_id"
+    },
+    {
+      "name": "store_360",
+      "sql": "SELECT s.store_id, s.name, s.region, sp.order_count, iv.inventory_value, pc.total_profit FROM dim_stores s LEFT JOIN store_performance sp ON s.store_id = sp.store_id LEFT JOIN inventory_value iv ON s.store_id = iv.store_id LEFT JOIN profit_centers pc ON s.store_id = pc.store_id"
+    },
+    {
+      "name": "executive_dashboard",
+      "sql": "SELECT 'Total Revenue' as metric, SUM(revenue) as value FROM daily_revenue UNION ALL SELECT 'Total Orders', SUM(order_count) FROM daily_orders UNION ALL SELECT 'Active Customers', COUNT(DISTINCT customer_id) FROM customer_lifetime_value UNION ALL SELECT 'Average Order Value', AVG(aov) FROM average_order_value"
+    },
+    {
+      "name": "operations_dashboard",
+      "sql": "SELECT d.date, do.order_count, dr.revenue, COUNT(DISTINCT os.shipment_id) as shipments, AVG(os.delivery_days) as avg_delivery_days FROM dim_dates d LEFT JOIN daily_orders do ON d.date = do.date LEFT JOIN daily_revenue dr ON d.date = dr.date LEFT JOIN order_shipments os ON DATE(os.shipment_date) = d.date GROUP BY d.date, do.order_count, dr.revenue"
+    },
+    {
+      "name": "sales_dashboard",
+      "sql": "SELECT tc.customer_id, tc.name, tc.lifetime_value, tp.product_id, tp.name as product_name, tp.revenue as product_revenue FROM top_customers tc CROSS JOIN top_products tp LIMIT 100"
+    },
+    {
+      "name": "marketing_dashboard",
+      "sql": "SELECT cc.cohort_month, cc.customer_count, AVG(clv.lifetime_value) as avg_ltv, cac.revenue_per_customer FROM customer_cohorts cc LEFT JOIN dim_customers c ON DATE_TRUNC('month', c.signup_date) = cc.cohort_month LEFT JOIN customer_lifetime_value clv ON c.customer_id = clv.customer_id LEFT JOIN customer_acquisition_cost cac ON cc.cohort_month = cac.cohort_month GROUP BY cc.cohort_month, cc.customer_count, cac.revenue_per_customer"
+    },
+    {
+      "name": "finance_dashboard",
+      "sql": "SELECT nr.date, nr.revenue, nr.refunds, nr.net_revenue, cc.total_salary_cost FROM net_revenue nr CROSS JOIN cost_centers cc"
+    },
+    {
+      "name": "inventory_dashboard",
+      "sql": "SELECT os.store_id, COUNT(DISTINCT os.product_id) as stockout_count, ls.product_id, ls.quantity as low_stock_quantity, iv.inventory_value FROM out_of_stock os CROSS JOIN low_stock_alerts ls CROSS JOIN inventory_value iv WHERE os.store_id = iv.store_id"
+    },
+    {
+      "name": "hr_dashboard",
+      "sql": "SELECT ed.department, ed.employee_count, ed.avg_salary, dp.total_orders FROM employee_departments ed LEFT JOIN department_performance dp ON ed.department = dp.department"
+    }
+  ]
+}

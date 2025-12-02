@@ -1,0 +1,48 @@
+{
+  "views": [
+    {
+      "name": "dim_customers",
+      "sql": "SELECT customer_id, name, email, created_at FROM raw.customers"
+    },
+    {
+      "name": "dim_products",
+      "sql": "SELECT product_id, name, category, price FROM raw.products"
+    },
+    {
+      "name": "fact_orders",
+      "sql": "SELECT order_id, customer_id, product_id, quantity, order_date FROM raw.orders"
+    },
+    {
+      "name": "customer_orders",
+      "sql": "SELECT c.name, o.order_id, o.order_date FROM dim_customers c JOIN fact_orders o ON c.customer_id = o.customer_id"
+    },
+    {
+      "name": "product_sales",
+      "sql": "SELECT p.name, SUM(o.quantity) as total_sold FROM dim_products p JOIN fact_orders o ON p.product_id = o.product_id GROUP BY p.name"
+    },
+    {
+      "name": "customer_lifetime_value",
+      "sql": "SELECT c.customer_id, c.name, COUNT(o.order_id) as order_count, SUM(p.price * o.quantity) as total_spent FROM dim_customers c JOIN fact_orders o ON c.customer_id = o.customer_id JOIN dim_products p ON o.product_id = p.product_id GROUP BY c.customer_id, c.name"
+    },
+    {
+      "name": "top_customers",
+      "sql": "SELECT customer_id, name, total_spent FROM customer_lifetime_value WHERE total_spent > 1000 ORDER BY total_spent DESC LIMIT 100"
+    },
+    {
+      "name": "top_products",
+      "sql": "SELECT name, total_sold FROM product_sales ORDER BY total_sold DESC LIMIT 50"
+    },
+    {
+      "name": "monthly_revenue",
+      "sql": "SELECT DATE_TRUNC('month', o.order_date) as month, SUM(p.price * o.quantity) as revenue FROM fact_orders o JOIN dim_products p ON o.product_id = p.product_id GROUP BY DATE_TRUNC('month', o.order_date)"
+    },
+    {
+      "name": "customer_segments",
+      "sql": "SELECT customer_id, name, CASE WHEN total_spent > 5000 THEN 'VIP' WHEN total_spent > 1000 THEN 'Premium' ELSE 'Standard' END as segment FROM customer_lifetime_value"
+    },
+    {
+      "name": "executive_dashboard",
+      "sql": "SELECT 'Customers' as metric, COUNT(*) as value FROM dim_customers UNION ALL SELECT 'Orders', COUNT(*) FROM fact_orders UNION ALL SELECT 'Revenue', SUM(revenue) FROM monthly_revenue"
+    }
+  ]
+}
