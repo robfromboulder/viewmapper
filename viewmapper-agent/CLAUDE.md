@@ -9,7 +9,7 @@ This module contains the core Java components of the ViewMapper project: SQL par
 ## Project Structure
 
 ```
-agent/
+viewmapper-agent/
 ├── pom.xml                          # Maven build configuration
 ├── README.md                        # User-facing documentation
 ├── CLAUDE.md                        # This file - AI context
