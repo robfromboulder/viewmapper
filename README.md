@@ -63,3 +63,8 @@ graph TB
 ```
 
 If you don't know anything about the schema or where to start, that's ok too. ViewMapper will suggest views that are interesting entry points, including **high-impact views** (with highest number of dependencies), **central-hub views** (with highest centrality among consumers), or **leaf views** (final views with no dependents) to help you get your bearings.
+
+You can use ViewMapper from the command line, from other agentic systems, or directly from Claude Desktop (for interactive use and native rendering of Mermaid diagram files)
+
+<img width="2171" height="1395" alt="Screenshot 2025-12-02 at 5 36 11 PM" src="https://github.com/user-attachments/assets/8356e721-6926-4083-86d4-d1ea2bcdf642" />
+
