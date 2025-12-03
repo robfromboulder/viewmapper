@@ -1,0 +1,214 @@
+# viewmapper-mcp-server: Testing Guide
+
+## Prerequisites
+
+**Python 3.10 or higher is required** for the MCP SDK.
+
+Check your Python version:
+```bash
+python3 --version
+```
+
+If you have Python 3.9 or earlier, you'll need to install Python 3.10+:
+
+**macOS (using Homebrew):**
+```bash
+brew install python@3.11
+```
+
+**Ubuntu/Debian:**
+```bash
+sudo apt install python3.11 python3.11-venv
+```
+
+**Windows:**
+Download from https://www.python.org/downloads/
+
+## Running Unit Tests
+
+### 1. Create Virtual Environment with Python 3.10+
+
+```bash
+# macOS/Linux
+python3.11 -m venv venv  # or python3.10, python3.12, etc.
+source venv/bin/activate
+
+# Windows
+python -m venv venv
+venv\Scripts\activate
+```
+
+### 2. Install Dependencies
+
+```bash
+pip install --upgrade pip
+pip install mcp pytest pytest-asyncio
+```
+
+### 3. Run Tests
+
+```bash
+# Run all tests
+pytest
+
+# Run with verbose output
+pytest -v
+
+# Run specific test file
+pytest tests/test_mcp_server.py
+
+# Run specific test
+pytest tests/test_mcp_server.py::TestToolRegistration::test_list_tools_returns_single_tool
+
+# Run with coverage
+pip install pytest-cov
+pytest --cov=mcp_server --cov-report=html
+```
+
+## Test Structure
+
+The test suite uses mocked subprocess calls to avoid requiring:
+- A built ViewMapper JAR
+- Anthropic API key
+- Java runtime
+
+### Test Categories
+
+**Tool Registration Tests (`TestToolRegistration`):**
+- Verify tool is registered with correct name
+- Verify input schema is correct
+- Verify required parameters
+
+**Prompt Building Tests (`TestPromptBuilding`):**
+- Test conversation history formatting
+- Test history truncation
+- Test context window limits
+- Test session ID handling
+
+**Tool Execution Tests (`TestToolExecution`):**
+- Test parameter validation
+- Test error handling (missing files, Java errors, timeouts)
+- Test subprocess invocation
+- Test conversation history accumulation
+
+## Manual Testing with Claude Desktop
+
+### Prerequisites
+
+1. **Python 3.10+** (system-wide or in specific location)
+2. **ViewMapper JAR** built from `../viewmapper-agent/`
+3. **Anthropic API Key**
+
+### Setup
+
+1. Build the JAR:
+   ```bash
+   cd ../viewmapper-agent
+   mvn clean package
+   ```
+
+2. Configure Claude Desktop (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+
+   ```json
+   {
+     "mcpServers": {
+       "viewmapper": {
+         "command": "/absolute/path/to/viewmapper/viewmapper-mcp-server/venv/bin/python",
+         "args": [
+           "mcp_server.py"
+         ],
+         "cwd": "/absolute/path/to/viewmapper/viewmapper-mcp-server",
+         "env": {
+           "ANTHROPIC_API_KEY_FOR_VIEWMAPPER": "sk-ant-your-key-here",
+           "VIEWMAPPER_CONNECTION": "test://simple_ecommerce",
+           "VIEWMAPPER_JAR": "/absolute/path/to/viewmapper/viewmapper-agent/target/viewmapper-478.jar"
+         }
+       }
+     }
+   }
+   ```
+
+   **Important:** Use absolute paths!
+
+3. Restart Claude Desktop
+
+### Test Queries
+
+Try these queries in Claude Desktop:
+
+**Simple Schema:**
+```
+Show me the full dependency diagram
+```
+
+**Entry Points:**
+```
+What are the high-impact entry points?
+```
+
+**Multi-Turn Conversation:**
+```
+First: What are the leaf views?
+
+Then: Show me the diagram for the first one.
+```
+
+### Debugging
+
+**Enable verbose mode:**
+```json
+"env": {
+  "VIEWMAPPER_VERBOSE": "1"
+}
+```
+
+**Check Claude Desktop logs:**
+- macOS: `~/Library/Logs/Claude/`
+- Look for stderr output from Java CLI
+
+**Test Python script directly:**
+```bash
+export ANTHROPIC_API_KEY_FOR_VIEWMAPPER="sk-ant-..."
+export VIEWMAPPER_CONNECTION="test://simple_ecommerce"
+export VIEWMAPPER_JAR="/absolute/path/to/viewmapper/viewmapper-agent/target/viewmapper-478.jar"
+echo '{"query": "Show me the full dependency diagram"}' | python3 mcp_server.py
+```
+
+## Continuous Integration
+
+To add CI testing (GitHub Actions, etc.):
+
+```yaml
+name: Test MCP Server
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          cd viewmapper-mcp-server
+          pip install mcp pytest pytest-asyncio
+      - name: Run tests
+        run: |
+          cd viewmapper-mcp-server
+          pytest -v
+```
+
+## Known Issues
+
+1. **System Python 3.9**: MCP SDK requires Python 3.10+. Install newer Python version.
+2. **Import errors**: Ensure virtual environment is activated and dependencies installed.
+3. **Module not found**: Make sure you're running tests from the `mcp-server` directory.
+
+## Future Test Improvements
+
+1. **Integration tests** - Test with real JAR and dataset files
+2. **Performance tests** - Measure response times for different schema sizes
+3. **Error injection** - Test recovery from various Java CLI failures
+4. **Context persistence** - Test session isolation when implemented
