@@ -1,4 +1,4 @@
-# viewmapper-mcp-server: Testing Guide
+# TESTING.md
 
 ## Prerequisites
 

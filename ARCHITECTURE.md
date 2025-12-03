@@ -31,7 +31,7 @@
          │ stdio (JSON-RPC)
          ↓
 ┌──────────────────┐
-│  Python MCP      │  ← ~40 lines, MCP protocol handling
+│  Python MCP      │  ← ~235 lines, MCP protocol handling + context management
 │  Server          │
 └────────┬─────────┘
          │ subprocess
@@ -117,7 +117,7 @@ Agent: [Checks if manageable, calls GenerateMermaid]
 - **CLI Framework:** Picocli 4.7.5 (command-line argument parsing)
 - **LLM Framework:** LangChain4j 0.35.0 with Anthropic integration
 - **SQL Parser:** Trino Parser 478
-- **Database Client:** Trino JDBC 478 (not yet integrated - TODO)
+- **Database Client:** Trino JDBC 478 (dependency included, not yet implemented)
 - **JSON:** Jackson 2.16.1
 - **Graph Analysis:** JGraphT 1.5.2 (fully integrated)
 - **Build Tool:** Maven with Shade plugin (fat JAR)
@@ -162,9 +162,11 @@ viewmapper/
 │               ├── ExtractSubgraphToolExecutor.java
 │               └── GenerateMermaidToolExecutor.java
 │
-├── viewmapper-mcp-server/         # TODO: Not yet implemented
+├── viewmapper-mcp-server/         # Python MCP wrapper (fully implemented)
 │   ├── pyproject.toml
-│   └── mcp_server.py              # ~40 lines, subprocess wrapper
+│   ├── mcp_server.py              # ~235 lines, subprocess wrapper + context management
+│   └── tests/
+│       └── test_mcp_server.py     # Unit tests with mocked subprocess
 │
 ├── README.md                      # User documentation
 └── ARCHITECTURE.md                # This document
@@ -252,17 +254,22 @@ public class DependencyAnalyzer {
 **Key Implementation:**
 ```java
 public class ViewMapperAgent {
-    private final DependencyAnalyzer analyzer;
-    private final SchemaExplorer explorer;  // AiServices proxy
+    private final Assistant assistant;  // AiServices proxy
 
-    // Production constructor
-    public ViewMapperAgent(AnthropicConfig config, DependencyAnalyzer analyzer) {
+    // Default constructor (uses environment config)
+    public ViewMapperAgent(DependencyAnalyzer analyzer) {
+        this(analyzer, AnthropicConfig.fromEnvironment());
+    }
+
+    // Explicit config constructor
+    public ViewMapperAgent(DependencyAnalyzer analyzer, AnthropicConfig config) {
         ChatLanguageModel model = AnthropicChatModel.builder()
             .apiKey(config.getApiKey())
             .modelName(config.getModelName())
+            .timeout(config.getTimeout())
             .build();
 
-        this.explorer = AiServices.builder(SchemaExplorer.class)
+        this.assistant = AiServices.builder(Assistant.class)
             .chatLanguageModel(model)
             .tools(
                 new AnalyzeSchemaToolExecutor(analyzer),
@@ -275,11 +282,11 @@ public class ViewMapperAgent {
 
     // Main entry point
     public String chat(String userQuery) {
-        return explorer.chat(userQuery);
+        return assistant.chat(userQuery);
     }
 
     // Embedded interface with system prompt
-    interface SchemaExplorer {
+    interface Assistant {
         @SystemMessage("You are a database schema expert...")
         String chat(String userMessage);
     }
@@ -314,13 +321,14 @@ Available tools:
 
 ### 5. Python MCP Wrapper
 
-**Purpose:** Handle MCP protocol, delegate to Java CLI.
+**Purpose:** Handle MCP protocol, delegate to Java CLI, manage conversation context.
 
 **Implementation:**
-- Register single tool: `explore_schema`
+- Register single tool: `explore_trino_views`
 - On tool call: Execute Java CLI via subprocess
-- Parse JSON output, format for Claude
-- Include Mermaid diagrams in response
+- Maintain conversation history (3-turn window)
+- Build enhanced prompts with context
+- Return text output directly (includes Mermaid diagrams)
 
 ## Graph Analysis Algorithms
 
@@ -384,15 +392,15 @@ graph TB
 # 1. Build Java CLI
 cd viewmapper-agent
 mvn clean package
-# Produces: target/viewmapper.jar
+# Produces: target/viewmapper-478.jar
 
-# 2. Install to user bin
-cp target/viewmapper.jar /usr/local/bin
+# 2. Install to user bin (optional)
+cp target/viewmapper-478.jar /usr/local/bin
 
 # 3. Set up Python MCP
 cd ../viewmapper-mcp-server
 uv venv
-uv pip install mcp
+uv pip install -e ".[dev]"  # Install with dev dependencies (includes pytest)
 ```
 
 ### Claude Desktop Configuration
@@ -423,9 +431,12 @@ uv pip install mcp
 - Full Java CLI execution with test schemas
 - Verify JSON output format
 
-### MCP Tests
-- Python subprocess invocation
-- JSON parsing and formatting
+### MCP Tests (Python)
+- Tool registration and schema validation (3 tests)
+- Prompt building with conversation history (5 tests)
+- Tool execution with mocked subprocess (9 tests)
+- Error handling and timeout scenarios
+- Context management across turns
 
 ### End-to-End
 - Load test schema into local Trino
