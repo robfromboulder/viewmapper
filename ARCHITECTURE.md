@@ -175,7 +175,7 @@ viewmapper/
 - ✅ SQL Parser (Trino 478): Fully implemented with comprehensive tests
 - ✅ Graph Analysis (JGraphT): Fully implemented (high-impact, leaf, centrality, subgraph)
 - ✅ LangChain4j Agent: Fully implemented with 4 tool executors
-- ✅ Dataset Loading: JSON embedded in JAR with test: connection URLs
+- ✅ Dataset Loading: JSON embedded in JAR with test:// connection URLs
 - ⏳ Trino JDBC Connection: Not yet implemented (uses datasets for testing)
 - ✅ Python MCP Wrapper: Fully implemented with context management
 
@@ -404,7 +404,7 @@ uv pip install mcp
       "args": ["--directory", "/path/to/viewmapper-mcp-server", "run", "mcp_server.py"],
       "env": {
         "ANTHROPIC_API_KEY_FOR_VIEWMAPPER": "sk-...",
-        "VIEWMAPPER_CONNECTION": "test:simple_ecommerce",
+        "VIEWMAPPER_CONNECTION": "test://simple_ecommerce",
         "VIEWMAPPER_JAR": "/path/to/viewmapper-agent/target/viewmapper-478.jar"
       }
     }
