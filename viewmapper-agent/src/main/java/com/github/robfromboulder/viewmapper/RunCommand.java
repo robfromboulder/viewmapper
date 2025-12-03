@@ -9,7 +9,6 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
-import java.io.File;
 import java.util.List;
 import java.util.concurrent.Callable;
 
@@ -22,14 +21,11 @@ public class RunCommand implements Callable<Integer> {
     @Parameters(index = "0", description = "Your question or command about the schema")
     private String prompt;
 
-    @Option(names = {"--load"}, description = "Load schema from JSON file instead of connecting to Trino")
-    private File loadFile;
+    @Option(names = {"--connection"}, description = "Connection string: 'test://<dataset_name>' or 'jdbc:trino://...'", required = true)
+    private String connection;
 
     @Option(names = {"--schema"}, description = "Trino schema name (used when connecting via JDBC)")
     private String schema;
-
-    @Option(names = {"--trino-url"}, description = "Trino JDBC connection URL (e.g., jdbc:trino://localhost:8080)")
-    private String trinoUrl;
 
     @Option(names = {"--output"}, description = "Output format: text (default) or json", defaultValue = "text")
     private String outputFormat;
@@ -45,15 +41,18 @@ public class RunCommand implements Callable<Integer> {
         try {
             ObjectMapper mapper = new ObjectMapper();
 
-            // initialize dependency analyzer
+            // use connection string to initialize analyzer
             DependencyAnalyzer analyzer = new DependencyAnalyzer();
-            if (loadFile == null) {
-                // load from Trino connection
-                throw new UnsupportedOperationException("Trino connection not yet implemented. Use --load for testing."); // todo load views from JDBC
-            } else {
-                // load json file
-                DataFile data = mapper.readValue(loadFile, DataFile.class);
+            if (connection.startsWith("test://")) {
+                String datasetName = connection.substring(7);
+                java.io.InputStream resourceStream = getClass().getClassLoader().getResourceAsStream("datasets/" + datasetName + ".json");
+                if (resourceStream == null) throw new IllegalArgumentException("Dataset not found: " + datasetName);
+                DataFile data = mapper.readValue(resourceStream, DataFile.class);
                 for (View view : data.views) analyzer.addView(view.name, view.sql);
+            } else if (connection.startsWith("jdbc:")) {
+                throw new UnsupportedOperationException("JDBC connections not yet implemented. Use --connection test://<dataset_name> for testing.");
+            } else {
+                throw new IllegalArgumentException("Invalid connection string. Must start with 'test://' or 'jdbc://'\nExamples:\n  --connection test://simple_ecommerce\n  --connection jdbc:trino://localhost:8080/catalog");
             }
             if (verbose) System.err.println("Initialized analyzer with " + analyzer.getViewCount() + " views");
 

@@ -127,7 +127,7 @@ public class ViewMapperAgent {
     /**
      * Processes a user prompt.
      *
-     * @param userPrompt Natural language query or command
+     * @param userPrompt Natural language prompt or command
      * @return Agent's response with analysis and recommendations
      */
     public String chat(String userPrompt) {

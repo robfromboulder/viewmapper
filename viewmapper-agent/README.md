@@ -1,9 +1,9 @@
-# ViewMapper Agent and Trino SQL Parser
-
-This module contains the core agent and SQL parser for the ViewMapper project, using Trino's native SQL parser to accurately extract table and view dependencies.
+# viewmapper-agent
+This module contains the core agent for the ViewMapper project, based on LangChain4j, and using Trino's native SQL parser to accurately extract view-to-view and view-to-table dependencies.
 
 ## Dependencies
 
+- **JDK 24** - Java compiler and runtime 
 - **Trino-Parser** - SQL parsing and AST
 - **Jackson** - JSON processing
 - **LangChain4j** - LLM agent framework
@@ -11,71 +11,269 @@ This module contains the core agent and SQL parser for the ViewMapper project, u
 - **JUnit 5** - Testing framework
 - **AssertJ** - Fluent assertions
 
-## Building
+## Usage
 
+Build binary package:
 ```bash
-cd agent
 mvn clean package
 ```
 
-This produces:
-- `target/original-viewmapper-478.jar` - Regular JAR
-- `target/viewmapper-478.jar` - Fat JAR with all dependencies (for CLI usage)
+Run with Trino connection:
+```bash
+java -jar target/viewmapper-478.jar run --connection "jdbc:trino://<...>" "<your prompt>"
+```
 
-## Running Tests
+Run with test dataset:
+```bash
+java -jar target/viewmapper-478.jar run --connection "test://<dataset_name>" "<your prompt>"
+```
+
+Run with different outputs:
+```bash
+# Default text output
+java -jar target/viewmapper-478.jar run --connection "test://simple_ecommerce" "Analyze this schema"
+
+# JSON output
+java -jar target/viewmapper-478.jar run --connection "test://simple_ecommerce" --output json "Analyze this schema"
+
+# Verbose mode (shows agent reasoning)
+java -jar target/viewmapper-478.jar run --connection "test://simple_ecommerce" --verbose "What are the leaf views?"
+```
+
+## Using Test Datasets
+
+ViewMapper includes test data files embedded in the JAR, for testing the agent without requiring a live Trino connection.
+
+### 1. simple_ecommerce
+
+**Complexity:** SIMPLE (11 views)
+**Description:** Basic e-commerce schema with customer, product, and order tracking.
+
+**Use Cases:**
+- Testing full diagram generation (complexity < 20 views)
+- Quick smoke testing of agent functionality
+- Demonstrating simple dependency chains
+
+**Key Views:**
+- `dim_customers`, `dim_products`, `fact_orders` - Foundation tables
+- `customer_lifetime_value` - Intermediate aggregation
+- `executive_dashboard` - Final reporting view
+
+**Dependency Patterns:**
+- Linear chains: `a → b → c → d`
+- Simple joins: Customer + Orders
+- Basic aggregations
+
+**Example Test Query:**
+```bash
+java -jar target/viewmapper-478.jar run --connection "test://simple_ecommerce" "Show me the full dependency diagram"
+```
+
+### 2. moderate_analytics
+
+**Complexity:** MODERATE (35 views)
+**Description:** Analytics platform with user engagement, orders, payments, and support tracking.
+
+**Use Cases:**
+- Testing iterative exploration strategy
+- Domain grouping recommendations
+- Entry point suggestion algorithms
+
+**Key Views:**
+- Dimensional: `dim_users`, `dim_products`, `dim_dates`
+- Fact tables: `fact_orders`, `fact_payments`, `fact_page_views`, `fact_support_tickets`
+- Analytics: `customer_360`, `user_lifetime_value`, `retention_analysis`
+- Dashboards: `executive_dashboard`, `marketing_report`, `operations_report`
+
+**Dependency Patterns:**
+- Star schema joins
+- Multiple fact tables
+- Cohort analysis
+- Customer segmentation
+
+**Example Test Queries:**
+```bash
+# Test entry point suggestions
+java -jar target/viewmapper-478.jar run --connection "test://moderate_analytics" "What are the high-impact views in this schema?"
+
+# Test subgraph extraction
+java -jar target/viewmapper-478.jar run --connection "test://moderate_analytics" "Show me everything that depends on user_lifetime_value"
+```
+
+### 3. realistic_bi_warehouse
+
+**Complexity:** COMPLEX (86 views)
+**Description:** Production-quality business intelligence data warehouse with star schema design and comprehensive analytics.
+
+**Use Cases:**
+- Demonstrating real-world BI architecture
+- Testing slowly changing dimensions (SCD Type 2)
+- Complex KPI calculations
+- Cross-functional dashboard dependencies
+
+**Key Views:**
+- Dimensions with SCD Type 2: `dim_customer`, `dim_product`, `dim_employee`, `dim_store`, `dim_supplier`, `dim_promotion`
+- Date dimension: `dim_date` (with fiscal calendar support)
+- Fact tables: `fact_sales`, `fact_inventory`, `fact_sales_target`
+- Time-series aggregations: daily/weekly/monthly/quarterly/yearly views
+- Customer analytics: RFM analysis, segmentation, cohorts, retention, churn risk
+- Product analytics: sales, margins, turnover, slow-movers
+- Store analytics: performance, productivity, same-store sales
+- Employee analytics: sales attribution, productivity
+- Marketing: promotion ROI, basket analysis, cross-sell
+- KPI dashboards: executive, sales ops, customer insights, inventory, marketing
+
+**Dependency Patterns:**
+- Classic star schema (fact → dimensions)
+- Time-series rollups (daily → weekly → monthly → quarterly → yearly)
+- Multi-level aggregations (detail → summary → KPI)
+- Cross-functional analytics (combining multiple domains)
+
+**Example Test Queries:**
+```bash
+# Test high-impact view identification
+java -jar target/viewmapper-478.jar run --connection "test://realistic_bi_warehouse" "Which views have the most dependents?"
+
+# Test leaf view identification
+java -jar target/viewmapper-478.jar run --connection "test://realistic_bi_warehouse" "What are the final output views?"
+
+# Test focused exploration
+java -jar target/viewmapper-478.jar run --connection "test://realistic_bi_warehouse" "Show me the dependency chain for executive_kpi_dashboard"
+```
+
+### 4. complex_enterprise
+
+**Complexity:** COMPLEX (154 views)
+**Description:** Large enterprise data warehouse with staging layers, multiple business domains, and extensive analytics.
+
+**Use Cases:**
+- Testing complex schema handling
+- Entry point requirement enforcement
+- Progressive disclosure strategy
+- Large subgraph extraction with depth control
+
+**Key Views:**
+- Raw layer: `raw_customers`, `raw_orders`, `raw_products`, etc. (10 views)
+- Staging layer: `stg_*` views (10 views)
+- Dimensional layer: `dim_*` views (6 views)
+- Fact tables: `fact_*` views (6 views)
+- Business logic: 100+ aggregation and analytics views
+- 360-degree views: `customer_360`, `product_360`, `store_360`
+- Dashboards: 7 domain-specific dashboards
+
+**Business Domains:**
+- Customer analytics (segments, cohorts, retention, churn)
+- Product analytics (sales, margins, inventory)
+- Store operations (performance, regions, productivity)
+- Employee management (sales, productivity, departments)
+- Supply chain (suppliers, inventory, shipments)
+- Financial analysis (revenue, refunds, ROI)
+
+**Dependency Patterns:**
+- Multi-layer architecture (raw → staging → dimensional → fact → analytics)
+- Diamond patterns (multiple paths to same view)
+- Hub nodes with high betweenness centrality
+- Deep dependency chains (5+ levels)
+
+**Example Test Queries:**
+```bash
+# Test complexity analysis
+java -jar target/viewmapper-478.jar run --connection "test://complex_enterprise" "Analyze this schema"
+
+# Test entry point suggestions
+java -jar target/viewmapper-478.jar run --connection "test://complex_enterprise" "What are the central hub views?"
+
+# Test subgraph with depth control
+java -jar target/viewmapper-478.jar run --connection "test://complex_enterprise" "Show me 2 levels upstream and 1 level downstream from customer_360"
+```
+
+## Testing Scenarios
+
+ViewMapper categorizes all schemas into four complexity levels:
+
+| Level | View Count | Strategy | Test File |
+|-------|-----------|----------|-----------|
+| **SIMPLE** | 0-19 | Full diagram feasible | simple_ecommerce |
+| **MODERATE** | 20-99 | Suggest grouping or iterative exploration | moderate_analytics |
+| **COMPLEX** | 100-499 | Require entry point selection | complex_enterprise, realistic_bi_warehouse |
+| **VERY_COMPLEX** | 500+ | Guided step-by-step exploration | _(not provided)_ |
+
+### 1. Schema Analysis
+Test the agent's ability to assess complexity and recommend strategies.
 
 ```bash
-mvn test
+# Simple schema - should suggest full diagram
+java -jar target/viewmapper-478.jar run --connection "test://simple_ecommerce" "Analyze this schema"
+
+# Complex schema - should require entry point
+java -jar target/viewmapper-478.jar run --connection "test://complex_enterprise" "Analyze this schema"
 ```
 
-## Why Trino Parser Over Regex?
+### 2. Entry Point Suggestions
 
-The Trino parser correctly handles complex SQL features that regex cannot:
+```bash
+# High-impact views (foundational views with most dependents)
+java -jar target/viewmapper-478.jar run --connection "test://moderate_analytics" "What are the high-impact views?"
 
-| Feature | Regex Result | Trino Parser Result |
-|---------|--------------|---------------------|
-| CTEs (WITH clauses) | Incorrectly includes CTE names as dependencies | ✅ Excludes CTEs, only includes actual tables |
-| String literals | Matches table-like patterns in strings | ✅ Ignores string literal content |
-| Subqueries | Misses nested dependencies | ✅ Correctly traverses all subqueries |
-| Quoted identifiers | Fails on special characters | ✅ Handles all valid identifiers |
-| Comments | Matches table names in comments | ✅ Ignores comments |
+# Leaf views (final outputs with no dependents)
+java -jar target/viewmapper-478.jar run --connection "test://moderate_analytics" "What are the leaf views?"
 
-Let's take a specific example:
-```sql
-WITH temp AS (
-  SELECT * FROM schema1.table1
-  WHERE description LIKE '%schema2.fake_table%'
-)
-SELECT * FROM temp
-JOIN schema3.table2 ON temp.id = table2.id
+# Central hubs (integration points with high betweenness centrality)
+java -jar target/viewmapper-478.jar run --connection "test://complex_enterprise" "What are the central hub views?"
 ```
 
-- **Regex result:** `[schema1.table1, schema2.fake_table, temp, schema3.table2]` ❌
-- **Trino parser result:** `[schema1.table1, schema3.table2]` ✅
+### 3. Subgraph Extraction
 
-## Implementation Details
+```bash
+# Default depth (2 upstream, 1 downstream)
+java -jar target/viewmapper-478.jar run --connection "test://realistic_bi_warehouse" "Show me the dependencies around customer_lifetime_value"
 
-### TrinoSqlParser
-
-Main entry point for parsing SQL and extracting dependencies.
-
-```java
-TrinoSqlParser parser = new TrinoSqlParser();
-Set<TableReference> deps = parser.extractDependencies(sql);
+# Custom depth
+java -jar target/viewmapper-478.jar run --connection "test://complex_enterprise" "Extract 3 levels upstream and 2 levels downstream from executive_dashboard"
 ```
 
-### DependencyExtractor
+### 4. Diagram Generation
 
-AST visitor that traverses the parsed SQL tree and collects table references while:
-- Tracking CTE names to exclude them from dependencies
-- Handling all query types (SELECT, INSERT, CREATE VIEW, MERGE, etc.)
-- Traversing subqueries, joins, and set operations
-- Ignoring string literals and comments
+```bash
+# Simple schema - full diagram
+java -jar target/viewmapper-478.jar run --connection "test://simple_ecommerce" "Generate a Mermaid diagram"
 
-### TableReference
+# Complex schema - focused diagram with entry point
+java -jar target/viewmapper-478.jar run --connection "test://complex_enterprise" "Generate a diagram starting from customer_360"
+```
 
-Model class representing a table/view reference with:
-- Catalog name (optional)
-- Schema name (optional)
-- Table name (required)
-- Fully qualified name
+### 5. Progressive Exploration
+
+```bash
+# Start with analysis
+java -jar target/viewmapper-478.jar run --connection "test://moderate_analytics" "Analyze this schema"
+
+# Get suggestions
+java -jar target/viewmapper-478.jar run --connection "test://moderate_analytics" "Suggest entry points"
+
+# Explore from entry point
+java -jar target/viewmapper-478.jar run --connection "test://moderate_analytics" "Show me everything related to user_lifetime_value"
+```
+
+## Troubleshooting
+
+### Issue: "Failed to parse SQL"
+- Check that your SQL is Trino-compatible
+- Ensure proper quoting of identifiers with special characters
+- Validate table references exist in the schema
+
+### Issue: "No views found in schema"
+- Verify JSON structure matches expected format
+- Check that `views` array is not empty
+- Ensure each view has both `name` and `sql` fields
+
+### Issue: "Circular dependency detected"
+- This is expected behavior for some schemas
+- ViewMapper handles cycles gracefully using DefaultDirectedGraph
+- Circular dependencies indicate potential schema design issues
+
+## Additional Documentation
+
+For developers working on the codebase:
+- **IMPLEMENTATION.md** - Technical implementation details and design decisions
+- **CLAUDE.md** - AI assistant context and development guidelines

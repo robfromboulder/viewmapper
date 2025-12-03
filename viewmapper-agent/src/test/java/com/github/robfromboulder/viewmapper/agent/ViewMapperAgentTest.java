@@ -29,7 +29,7 @@ class ViewMapperAgentTest {
     @Test
     void testChatWithMockResponse() {
         mockModel.setDefaultResponse("This is a mock response from the agent");
-        String response = agent.chat("Test query");
+        String response = agent.chat("Test prompt");
         assertThat(response).isEqualTo("This is a mock response from the agent");
         assertThat(mockModel.getCallCount()).isEqualTo(1);
     }
@@ -48,9 +48,9 @@ class ViewMapperAgentTest {
     @Test
     void testMultipleInteractions() {
         mockModel.setDefaultResponse("Mock response");
-        agent.chat("First query");
-        agent.chat("Second query");
-        agent.chat("Third query");
+        agent.chat("First prompt");
+        agent.chat("Second prompt");
+        agent.chat("Third prompt");
         assertThat(mockModel.getCallCount()).isEqualTo(3);
     }
 
@@ -65,8 +65,8 @@ class ViewMapperAgentTest {
 
     @Test
     void testEmptyQuery() {
-        mockModel.setDefaultResponse("Please provide a query");
-        String response = agent.chat("empty"); // empty string is still a valid query, though not useful
+        mockModel.setDefaultResponse("Please provide a prompt");
+        String response = agent.chat("empty"); // empty string is still a valid prompt, though not useful
         assertThat(response).isNotEmpty();
     }
 

@@ -1,4 +1,4 @@
-# CLAUDE.md - ViewMapper Agent Module
+# viewmapper-agent: Documentation for Claude
 
 ## Module Overview
 
@@ -13,34 +13,36 @@ viewmapper-agent/
 ├── pom.xml                          # Maven build configuration
 ├── README.md                        # User-facing documentation
 ├── CLAUDE.md                        # This file - AI context
-├── datasets/                        # Test data for manual testing
-│   ├── README.md                    # Dataset documentation
-│   ├── simple_ecommerce.json        # 11 views - SIMPLE complexity
-│   ├── moderate_analytics.json      # 35 views - MODERATE complexity
-│   ├── complex_enterprise.json      # 154 views - COMPLEX complexity
-│   └── realistic_bi_warehouse.json  # 86 views - COMPLEX complexity
 └── src/
-    ├── main/java/com/github/robfromboulder/viewmapper/
-    │   ├── Main.java                # CLI entry point
-    │   ├── RunCommand.java          # Primary CLI command
-    │   ├── parser/                  # SQL parsing and dependency analysis
-    │   │   ├── TrinoSqlParser.java
-    │   │   ├── DependencyExtractor.java
-    │   │   ├── TableReference.java
-    │   │   └── DependencyAnalyzer.java
-    │   └── agent/                   # LLM agent orchestration
-    │       ├── ViewMapperAgent.java
-    │       ├── AnthropicConfig.java
-    │       ├── types/               # Agent data types
-    │       │   ├── ComplexityLevel.java
-    │       │   ├── SchemaComplexity.java
-    │       │   ├── EntryPointSuggestion.java
-    │       │   └── SubgraphResult.java
-    │       └── tools/               # Agent tool executors
-    │           ├── AnalyzeSchemaToolExecutor.java
-    │           ├── SuggestEntryPointsToolExecutor.java
-    │           ├── ExtractSubgraphToolExecutor.java
-    │           └── GenerateMermaidToolExecutor.java
+    ├── main/
+    │   ├── java/com/github/robfromboulder/viewmapper/
+    │   │   ├── Main.java                # CLI entry point
+    │   │   ├── RunCommand.java          # Primary CLI command
+    │   │   ├── parser/                  # SQL parsing and dependency analysis
+    │   │   │   ├── TrinoSqlParser.java
+    │   │   │   ├── DependencyExtractor.java
+    │   │   │   ├── TableReference.java
+    │   │   │   └── DependencyAnalyzer.java
+    │   │   └── agent/                   # LLM agent orchestration
+    │   │       ├── ViewMapperAgent.java
+    │   │       ├── AnthropicConfig.java
+    │   │       ├── types/               # Agent data types
+    │   │       │   ├── ComplexityLevel.java
+    │   │       │   ├── SchemaComplexity.java
+    │   │       │   ├── EntryPointSuggestion.java
+    │   │       │   └── SubgraphResult.java
+    │   │       └── tools/               # Agent tool executors
+    │   │           ├── AnalyzeSchemaToolExecutor.java
+    │   │           ├── SuggestEntryPointsToolExecutor.java
+    │   │           ├── ExtractSubgraphToolExecutor.java
+    │   │           └── GenerateMermaidToolExecutor.java
+    │   └── resources/
+    │       └── datasets/                # Test data embedded in JAR
+    │           ├── README.md
+    │           ├── simple_ecommerce.json        # 11 views - SIMPLE
+    │           ├── moderate_analytics.json      # 35 views - MODERATE
+    │           ├── complex_enterprise.json      # 154 views - COMPLEX
+    │           └── realistic_bi_warehouse.json  # 86 views - COMPLEX
     └── test/java/...                # 18 test files, comprehensive coverage
 ```
 
@@ -210,34 +212,46 @@ All tools use LangChain4j's `@Tool` annotation for automatic registration:
 - Entry point using Picocli framework
 - Defines top-level command with help/version options
 - Delegates to `RunCommand` subcommand
-- Usage: `java -jar viewmapper-478.jar run [options] <query>`
+- Usage: `java -jar viewmapper-478.jar run [options] <prompt>`
 
 **RunCommand.java**
 - Primary CLI command implementation
 - Parameters:
-  - `query` (required) - Natural language question about schema
-  - `--load <file>` - Load schema from JSON file (datasets/*)
+  - `prompt` (required) - Natural language question about schema
+  - `--connection <string>` (required) - Connection string: 'test://<dataset_name>' or 'jdbc:trino://...'
+  - `--schema <name>` - Trino schema name (for future JDBC support)
   - `--output <format>` - Output format: text (default) or json
   - `--verbose` - Show debugging information
 
+**Connection Strings:**
+- `test://<dataset_name>` - Load from embedded resources in JAR
+- `jdbc:trino://...` - Future JDBC support (not yet implemented)
+
+**Available Test Datasets:**
+- simple_ecommerce (11 views - SIMPLE)
+- moderate_analytics (35 views - MODERATE)
+- complex_enterprise (154 views - COMPLEX)
+- realistic_bi_warehouse (86 views - COMPLEX)
+
 **Data Loading:**
+- Resources embedded in JAR from src/main/resources/datasets/
 - JSON structure: `{"description": "...", "views": [{"name": "...", "sql": "..."}]}`
 - Parses SQL for each view and builds dependency graph
-- Agent still calls real Anthropic API (--load only affects data source)
+- Agent calls Anthropic API (connection only affects data source)
 
 **Example Usage:**
 ```bash
 # Basic query with test data
-java -jar target/viewmapper-478.jar run --load datasets/simple_ecommerce.json "Show me the full dependency diagram"
+java -jar target/viewmapper-478.jar run --connection "test://simple_ecommerce" "Show me the full dependency diagram"
 
 # Complex schema requiring entry points
-java -jar target/viewmapper-478.jar run --load datasets/complex_enterprise.json "What are the central hub views?"
+java -jar target/viewmapper-478.jar run --connection "test://complex_enterprise" "What are the central hub views?"
 
 # Focused subgraph extraction
-java -jar target/viewmapper-478.jar run --load datasets/realistic_bi_warehouse.json "Show me 2 levels upstream from customer_360"
+java -jar target/viewmapper-478.jar run --connection "test://realistic_bi_warehouse" "Show me 2 levels upstream from customer_360"
 
 # JSON output for programmatic use
-java -jar target/viewmapper-478.jar run --load datasets/moderate_analytics.json --output json "Analyze this schema"
+java -jar target/viewmapper-478.jar run --connection "test://moderate_analytics" --output json "Analyze this schema"
 ```
 
 ## Testing Strategy
@@ -482,29 +496,33 @@ Longer explanation if needed.
 - Test both happy path and edge cases
 - Include at least one real-world scenario test
 
-## Dataset Files for Manual Testing
+## Dataset Files for Testing
 
-The `datasets/` directory contains 4 curated JSON test files that allow manual testing without a live Trino connection:
+The `src/main/resources/datasets/` directory contains 4 curated JSON test files embedded in the JAR. Access via `--connection test://<name>`:
 
-1. **simple_ecommerce.json** (11 views)
+1. **simple_ecommerce** (11 views)
    - Complexity: SIMPLE
    - Use case: Full diagram generation, smoke testing
    - Pattern: Linear chains, simple joins
+   - Usage: `--connection "test://simple_ecommerce"`
 
-2. **moderate_analytics.json** (35 views)
+2. **moderate_analytics** (35 views)
    - Complexity: MODERATE
    - Use case: Entry point suggestions, iterative exploration
    - Pattern: Star schema, cohort analysis, customer segmentation
+   - Usage: `--connection "test://moderate_analytics"`
 
-3. **complex_enterprise.json** (154 views)
+3. **complex_enterprise** (154 views)
    - Complexity: COMPLEX
    - Use case: Large schema handling, progressive disclosure
    - Pattern: Multi-layer architecture (raw→staging→dim→fact→analytics)
+   - Usage: `--connection "test://complex_enterprise"`
 
-4. **realistic_bi_warehouse.json** (86 views)
+4. **realistic_bi_warehouse** (86 views)
    - Complexity: COMPLEX
    - Use case: Production-quality BI with SCD Type 2, RFM analysis
    - Pattern: Time-series rollups, KPI dashboards
+   - Usage: `--connection "test://realistic_bi_warehouse"`
 
 **JSON Format:**
 ```json
@@ -519,7 +537,7 @@ The `datasets/` directory contains 4 curated JSON test files that allow manual t
 }
 ```
 
-**See `datasets/README.md` for:**
+**See `src/main/resources/datasets/README.md` for:**
 - Detailed dataset descriptions
 - 26+ example commands
 - Testing scenarios (complexity analysis, entry points, subgraph extraction)
@@ -529,11 +547,11 @@ The `datasets/` directory contains 4 curated JSON test files that allow manual t
 ## Agent Architecture Details
 
 **Agentic Reasoning Flow:**
-1. User submits natural language query via CLI
-2. `RunCommand` loads schema (from file or Trino) into `DependencyAnalyzer`
-3. `ViewMapperAgent` receives query and invokes `SchemaExplorer.chat()`
+1. User submits natural language prompt via CLI with --connection parameter
+2. `RunCommand` loads schema (from test:// resource or jdbc: connection) into `DependencyAnalyzer`
+3. `ViewMapperAgent` receives prompt and invokes `SchemaExplorer.chat()`
 4. LangChain4j's AiServices:
-   - Sends system prompt + user query to Claude
+   - Sends system prompt + user prompt to Claude
    - Claude decides which tools to call based on reasoning strategy
    - Tool executors interact with DependencyAnalyzer
    - Results flow back to Claude for synthesis
