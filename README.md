@@ -11,10 +11,10 @@ create or replace view example.b as select * from example.a
 create or replace view example.c as select * from example.b
 ```
 
-That's a lot of reading as the schema grows to hundreds of views. And because these views aren't related by foreign keys, many ERD tools don't properly report these relationships. ☹️
+That's a lot of reading as the schema grows to hundreds of views. And because these views aren't related by primary or foreign keys, many ERD tools don't properly report these relationships. ☹️
 
 ViewMapper uses the Trino parser to properly report on all view relationships, even when using complex JOIN, UNION, or WITH clauses in your view definitions.
-With its understanding of view relationships, ViewMapper can easily display this hierarchy into a Mermaid diagram.
+With its understanding of view relationships, ViewMapper can easily display this hierarchy as a Mermaid diagram.
 ```mermaid
 graph TD
     node1["example.c"]
