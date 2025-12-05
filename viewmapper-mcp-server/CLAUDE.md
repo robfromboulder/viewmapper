@@ -5,7 +5,7 @@
 ## Current Status
 
 ⚠️ **Active Development** - NOT production ready, still under development and testing
-- Python 3.10+ MCP server wrapping ViewMapper Java CLI
+- Python 3.14+ MCP server wrapping ViewMapper Java CLI
 - Conversation context management (last 3 turns)
 - Comprehensive error handling with clear user messages
 - Unit tests with mocked subprocess calls (229 lines)
@@ -84,7 +84,7 @@ pytest -v                              # All unit tests (mocked)
 ┌──────────────────┐
 │  mcp_server.py   │  ← THIS MODULE
 │                  │  - Tool registration
-│  Python 3.10+    │  - Conversation context (last 3 turns)
+│  Python 3.14+    │  - Conversation context (last 3 turns)
 │  MCP SDK         │  - Subprocess management
 └────────┬─────────┘
          │ subprocess.run()
@@ -582,7 +582,7 @@ cmd = ["/Users/robfromboulder/Tools/jdk-24.0.2+12/Contents/Home/bin/java", ...]
 
 **Mitigation:** Error message suggests simpler queries, no retry mechanism
 
-### 5. Python 3.10+ Required
+### 5. Python 3.14+ Required
 
 **Impact:** Older Python versions not supported
 
@@ -623,7 +623,7 @@ cmd = ["/Users/robfromboulder/Tools/jdk-24.0.2+12/Contents/Home/bin/java", ...]
 - **pip** - Python package management
 
 **Runtime:**
-- **Python 3.10+** - Required by MCP SDK
+- **Python 3.14+** - Official tested version
 
 **Core Libraries:**
 - **mcp 1.0.0** - Model Context Protocol SDK

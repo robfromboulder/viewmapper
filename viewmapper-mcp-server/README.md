@@ -4,8 +4,7 @@ This module exposes the ViewMapper agent as an MCP tool for Claude Desktop, enab
 ## Dependencies
 
 - **Java 24** - Required to run ViewMapper CLI
-- **Python 3.10+** - Required for MCP server
-- **uv** - Python package manager (recommended) or pip
+- **Python 3.14** - Required for MCP server
 - **ViewMapper JAR** - Built from `../viewmapper-agent/` directory
 - **Anthropic API Key** - For Claude agent in Java CLI
 
@@ -24,13 +23,11 @@ mvn clean package
 ```bash
 cd viewmapper-mcp-server
 
-# Using uv (recommended)
-uv venv
-uv pip install -e ".[dev]"  # Includes pytest for testing
-
-# Or using pip
-python -m venv venv
+# create virtual environment
+python3.14 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# install package with dev dependencies (includes pytest)
 pip install -e ".[dev]"
 ```
 
@@ -62,8 +59,6 @@ Edit Claude Desktop's configuration file:
 
 Add the ViewMapper MCP server:
 
-**Option A: Using venv (recommended for stability)**
-
 ```json
 {
   "mcpServers": {
@@ -73,30 +68,6 @@ Add the ViewMapper MCP server:
         "mcp_server.py"
       ],
       "cwd": "/absolute/path/to/viewmapper/viewmapper-mcp-server",
-      "env": {
-        "ANTHROPIC_API_KEY_FOR_VIEWMAPPER": "sk-ant-your-key-here",
-        "VIEWMAPPER_CONNECTION": "test://simple_ecommerce",
-        "VIEWMAPPER_JAR": "/absolute/path/to/viewmapper/viewmapper-agent/target/viewmapper-478.jar"
-      }
-    }
-  }
-}
-```
-
-**Option B: Using uv**
-
-```json
-{
-  "mcpServers": {
-    "viewmapper": {
-      "command": "uv",
-      "args": [
-        "--directory",
-        "/absolute/path/to/viewmapper/viewmapper-mcp-server",
-        "run",
-        "python",
-        "mcp_server.py"
-      ],
       "env": {
         "ANTHROPIC_API_KEY_FOR_VIEWMAPPER": "sk-ant-your-key-here",
         "VIEWMAPPER_CONNECTION": "test://simple_ecommerce",

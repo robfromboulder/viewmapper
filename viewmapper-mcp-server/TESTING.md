@@ -2,35 +2,32 @@
 
 ## Prerequisites
 
-**Python 3.10 or higher is required** for the MCP SDK.
+Python **3.14** is required and used in this documentation.
 
 Check your Python version:
 ```bash
 python3 --version
 ```
 
-If you have Python 3.9 or earlier, you'll need to install Python 3.10+:
-
+Install Python 3.14 if necessary:
 **macOS (using Homebrew):**
 ```bash
-brew install python@3.11
+brew install python@3.14
 ```
-
 **Ubuntu/Debian:**
 ```bash
-sudo apt install python3.11 python3.11-venv
+sudo apt install python3.14 python3.14-venv
 ```
-
 **Windows:**
 Download from https://www.python.org/downloads/
 
 ## Running Unit Tests
 
-### 1. Create Virtual Environment with Python 3.10+
+### 1. Create Virtual Environment
 
 ```bash
 # macOS/Linux
-python3.11 -m venv venv  # or python3.10, python3.12, etc.
+python3.14 -m venv venv
 source venv/bin/activate
 
 # Windows
@@ -95,7 +92,7 @@ The test suite uses mocked subprocess calls to avoid requiring:
 
 ### Prerequisites
 
-1. **Python 3.10+** (system-wide or in specific location)
+1. **Python 3.14** (system-wide or in specific location)
 2. **ViewMapper JAR** built from `../viewmapper-agent/`
 3. **Anthropic API Key**
 
@@ -189,7 +186,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: '3.14'
       - name: Install dependencies
         run: |
           cd viewmapper-mcp-server
@@ -202,9 +199,8 @@ jobs:
 
 ## Known Issues
 
-1. **System Python 3.9**: MCP SDK requires Python 3.10+. Install newer Python version.
-2. **Import errors**: Ensure virtual environment is activated and dependencies installed.
-3. **Module not found**: Make sure you're running tests from the `mcp-server` directory.
+1. **Import errors**: Ensure virtual environment is activated and dependencies installed.
+2. **Module not found**: Make sure you're running tests from the `mcp-server` directory.
 
 ## Future Test Improvements
 

@@ -124,8 +124,7 @@ Agent: [Checks if manageable, calls GenerateMermaid]
 
 ### Python Components
 - **MCP SDK:** `mcp` package (official Anthropic SDK)
-- **Python Version:** 3.10+
-- **Package Manager:** `uv` (modern, fast)
+- **Python Version:** 3.14
 
 ## Project Structure
 
@@ -399,8 +398,9 @@ cp target/viewmapper-478.jar /usr/local/bin
 
 # 3. Set up Python MCP
 cd ../viewmapper-mcp-server
-uv venv
-uv pip install -e ".[dev]"  # Install with dev dependencies (includes pytest)
+python3.14 -m venv venv
+source venv/bin/activate
+pip install -e ".[dev]"  # install with dev dependencies (includes pytest)
 ```
 
 ### Claude Desktop Configuration
@@ -408,12 +408,13 @@ uv pip install -e ".[dev]"  # Install with dev dependencies (includes pytest)
 {
   "mcpServers": {
     "viewmapper": {
-      "command": "uv",
-      "args": ["--directory", "/path/to/viewmapper-mcp-server", "run", "mcp_server.py"],
+      "command": "/absolute/path/to/viewmapper/viewmapper-mcp-server/venv/bin/python",
+      "args": ["mcp_server.py"],
+      "cwd": "/absolute/path/to/viewmapper/viewmapper-mcp-server",
       "env": {
         "ANTHROPIC_API_KEY_FOR_VIEWMAPPER": "sk-...",
         "VIEWMAPPER_CONNECTION": "test://simple_ecommerce",
-        "VIEWMAPPER_JAR": "/path/to/viewmapper-agent/target/viewmapper-478.jar"
+        "VIEWMAPPER_JAR": "/absolute/path/to/viewmapper-agent/target/viewmapper-478.jar"
       }
     }
   }
