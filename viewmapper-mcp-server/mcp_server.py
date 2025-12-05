@@ -160,20 +160,18 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
     history = conversation_histories.get(session_id, [])
     enhanced_query = build_prompt_with_history(history, query)
 
-    # Build command
+    # Build Java CLI command
     cmd = [
-        "/Users/robfromboulder/Tools/jdk-24.0.2+12/Contents/Home/bin/java", "-jar", VIEWMAPPER_JAR,
+        "java", "-jar", VIEWMAPPER_JAR,
         "run",
         enhanced_query,
         "--connection", CONNECTION,
         "--output", "text"
     ]
-    # todo replace reference to 'robfromboulder' above when dockerizing
-
     if VERBOSE:
         cmd.append("--verbose")
 
-    # Execute Java CLI
+    # Execute Java CLI command
     try:
         result = subprocess.run(
             cmd,
@@ -182,7 +180,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             timeout=60,
             env={
                 **os.environ,
-                "ANTHROPIC_API_KEY_FOR_VIEWMAPPER": ANTHROPIC_API_KEY
+                "ANTHROPIC_API_KEY": ANTHROPIC_API_KEY
             }
         )
 
