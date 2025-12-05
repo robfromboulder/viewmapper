@@ -481,17 +481,34 @@ graph TB
 
 ## Installation & Deployment
 
-### Production Deployment (Docker)
+### Automated Build (Recommended)
 
-**Recommended approach** - Bundles all dependencies in a container.
+**Use the automated build script** at project root to build everything in one command:
 
 ```bash
-cd viewmapper-mcp-server
+./build.sh
+```
+
+This script:
+1. Checks prerequisites (Maven, Docker, Java)
+2. Builds viewmapper-agent JAR with `mvn clean package`
+3. Copies JAR to viewmapper-mcp-server directory
+4. Builds Docker container with `--no-cache`
+5. Provides color-coded progress output and build summary
+
+### Manual Build (For Debugging)
+
+**Manual approach** if you need fine-grained control or trying to diagnose one step of the build process:
+
+```bash
+cd viewmapper-agent
+mvn clean package
+cd ../viewmapper-mcp-server
 cp ../viewmapper-agent/target/viewmapper-478.jar .
 docker image rm -f viewmapper:478 && docker build --no-cache -t viewmapper:478 .
 ```
 
-### Claude Desktop Configuration (Production)
+### Claude Desktop Configuration (Docker)
 ```json
 {
   "mcpServers": {
