@@ -116,6 +116,22 @@ clean_docker() {
         log_success "Pruned Docker build cache"
     fi
 
+    # Prune buildx cache for viewmapper-builder (if it exists)
+    if docker buildx inspect viewmapper-builder &> /dev/null; then
+        log_info "Pruning Docker buildx cache for viewmapper-builder..."
+        if docker buildx prune --builder viewmapper-builder -f > /dev/null 2>&1; then
+            log_success "Pruned Docker buildx cache for viewmapper-builder"
+        fi
+    fi
+
+    # Prune buildx cache for default builder (if buildx is available)
+    if docker buildx version &> /dev/null; then
+        log_info "Pruning Docker buildx cache..."
+        if docker buildx prune -f > /dev/null 2>&1; then
+            log_success "Pruned Docker buildx cache"
+        fi
+    fi
+
     # Prune system (dangling images, stopped containers, unused networks)
     log_info "Pruning Docker system..."
     if docker system prune -f > /dev/null 2>&1; then
@@ -144,6 +160,12 @@ display_summary() {
     if check_docker &> /dev/null; then
         echo "  - Docker image: ${DOCKER_IMAGE}"
         echo "  - Docker build cache"
+        if docker buildx inspect viewmapper-builder &> /dev/null; then
+            echo "  - Docker buildx cache (viewmapper-builder)"
+        fi
+        if docker buildx version &> /dev/null; then
+            echo "  - Docker buildx cache (default)"
+        fi
         echo "  - Docker system cache (dangling images, stopped containers, unused networks)"
     fi
     echo ""
