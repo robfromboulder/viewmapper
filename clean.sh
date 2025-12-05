@@ -15,6 +15,7 @@ NC='\033[0m' # No Color
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AGENT_DIR="${PROJECT_ROOT}/viewmapper-agent"
 MCP_SERVER_DIR="${PROJECT_ROOT}/viewmapper-mcp-server"
+DOCKER_IMAGE="viewmapper:478"
 
 # Helper functions
 log_info() {
@@ -27,6 +28,15 @@ log_success() {
 
 log_warning() {
     echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+# Check if Docker is available
+check_docker() {
+    if ! command -v docker &> /dev/null; then
+        log_warning "Docker not found - skipping Docker cleanup"
+        return 1
+    fi
+    return 0
 }
 
 # Clean viewmapper-agent
@@ -84,6 +94,35 @@ clean_mcp_server() {
     cd "${PROJECT_ROOT}"
 }
 
+# Clean Docker artifacts
+clean_docker() {
+    if ! check_docker; then
+        return
+    fi
+
+    log_info "Cleaning Docker artifacts..."
+
+    # Remove viewmapper image if it exists
+    if docker image inspect "${DOCKER_IMAGE}" &> /dev/null; then
+        docker image rm -f "${DOCKER_IMAGE}"
+        log_success "Removed Docker image: ${DOCKER_IMAGE}"
+    else
+        log_info "Docker image ${DOCKER_IMAGE} not found (already clean)"
+    fi
+
+    # Prune build cache
+    log_info "Pruning Docker build cache..."
+    if docker builder prune -f > /dev/null 2>&1; then
+        log_success "Pruned Docker build cache"
+    fi
+
+    # Prune system (dangling images, stopped containers, unused networks)
+    log_info "Pruning Docker system..."
+    if docker system prune -f > /dev/null 2>&1; then
+        log_success "Pruned Docker system (dangling images, stopped containers, unused networks)"
+    fi
+}
+
 # Display summary
 display_summary() {
     echo ""
@@ -102,6 +141,11 @@ display_summary() {
     echo "  - viewmapper-mcp-server/venv/"
     echo "  - viewmapper-mcp-server/__pycache__/"
     echo "  - viewmapper-mcp-server/viewmapper-478.jar"
+    if check_docker &> /dev/null; then
+        echo "  - Docker image: ${DOCKER_IMAGE}"
+        echo "  - Docker build cache"
+        echo "  - Docker system cache (dangling images, stopped containers, unused networks)"
+    fi
     echo ""
     echo "To rebuild: ./build.sh"
     echo ""
@@ -112,6 +156,7 @@ main() {
     log_info "Starting clean process..."
     clean_agent
     clean_mcp_server
+    clean_docker
     display_summary
 }
 
