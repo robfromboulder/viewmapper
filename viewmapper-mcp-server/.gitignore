@@ -24,3 +24,6 @@ htmlcov/
 # OS
 .DS_Store
 Thumbs.db
+
+# Agent JAR
+viewmapper-*.jar

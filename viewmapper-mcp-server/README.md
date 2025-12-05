@@ -3,53 +3,26 @@ This module exposes the ViewMapper agent as an MCP tool for Claude Desktop, enab
 
 ## Dependencies
 
+- **Trino 478** - For schemas to map
 - **Java 24** - Required to run ViewMapper CLI
 - **Python 3.14** - Required for MCP server
 - **ViewMapper JAR** - Built from `../viewmapper-agent/` directory
 - **Anthropic API Key** - For Claude agent in Java CLI
 
-## Installation
+## Usage
 
-### 1. Build ViewMapper JAR
+The recommended way to use ViewMapper is via Docker, which bundles all dependencies.
 
-```bash
-cd ../viewmapper-agent
-mvn clean package
-# Produces: target/viewmapper-478.jar
-```
-
-### 2. Set Up Python Environment
+### 1. Build Docker Image
 
 ```bash
 cd viewmapper-mcp-server
 
-# create virtual environment
-python3.14 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# install package with dev dependencies (includes pytest)
-pip install -e ".[dev]"
+# build without cache for clean build
+docker image rm -f viewmapper:478 && docker build --no-cache -t viewmapper:478 .
 ```
 
-### 3. Configure Environment Variables
-
-Set these environment variables in your shell or Claude Desktop configuration:
-
-```bash
-# Required: Anthropic API key (passed to Java agent)
-export ANTHROPIC_API_KEY_FOR_VIEWMAPPER="sk-ant-..."
-
-# Required: Path to ViewMapper JAR
-export VIEWMAPPER_JAR="/path/to/viewmapper/viewmapper-agent/target/viewmapper-478.jar"
-
-# Optional: Connection string (default: test://simple_ecommerce)
-export VIEWMAPPER_CONNECTION="test://simple_ecommerce"
-
-# Optional: Enable verbose logging
-export VIEWMAPPER_VERBOSE="1"
-```
-
-### 4. Configure Claude Desktop
+### 2. Configure Claude Desktop
 
 Edit Claude Desktop's configuration file:
 
@@ -62,29 +35,28 @@ Add the ViewMapper MCP server:
 ```json
 {
   "mcpServers": {
-    "viewmapper": {
-      "command": "/absolute/path/to/viewmapper/viewmapper-mcp-server/venv/bin/python",
+    "viewmapper-mcp-server": {
+      "command": "docker",
       "args": [
-        "mcp_server.py"
-      ],
-      "cwd": "/absolute/path/to/viewmapper/viewmapper-mcp-server",
-      "env": {
-        "ANTHROPIC_API_KEY_FOR_VIEWMAPPER": "sk-ant-your-key-here",
-        "VIEWMAPPER_CONNECTION": "test://simple_ecommerce",
-        "VIEWMAPPER_JAR": "/absolute/path/to/viewmapper/viewmapper-agent/target/viewmapper-478.jar"
-      }
+        "run", "-i", "--rm",
+        "-e", "ANTHROPIC_API_KEY_FOR_VIEWMAPPER=sk-ant-your-key-here",
+        "-e", "VIEWMAPPER_CONNECTION=test://simple_ecommerce",
+        "viewmapper:478"
+      ]
     }
   }
 }
 ```
 
-**Important:** Use absolute paths, not relative paths or `~`.
+**Configuration options:**
+- Replace `sk-ant-your-key-here` with your Anthropic API key
+- Change `VIEWMAPPER_CONNECTION` to use different test datasets (see Available Test Datasets below)
 
-### 5. Restart Claude Desktop
+### 3. Restart Claude Desktop
 
 After editing the configuration, restart Claude Desktop completely (not just close/reopen a chat window).
 
-## Usage
+## Prompting Guide
 
 ### Basic Commands
 
@@ -129,54 +101,37 @@ See `../viewmapper-agent/README.md` for detailed descriptions and example querie
 
 ### Issue: "Claude Desktop doesn't see the tool"
 
-1. Check MCP server is configured correctly in `claude_desktop_config.json`
-2. Verify absolute paths (not `~` or relative)
+1. Verify Docker image is built: `docker images | grep viewmapper`
+2. Check MCP server is configured correctly in `claude_desktop_config.json`
 3. Restart Claude Desktop completely
 4. Check Claude Desktop logs (Help → View Logs)
 
-### Issue: "VIEWMAPPER_JAR not found" error
-
-Verify the environment variable points to the correct JAR:
-
-```bash
-ls -la "$VIEWMAPPER_JAR"
-# Should show: viewmapper-478.jar
-```
-
 ### Issue: "API key required" error
 
-Ensure API key is set:
-
-```bash
-echo $ANTHROPIC_API_KEY_FOR_VIEWMAPPER
-# Should print: sk-ant-...
-```
-
-### Issue: Java errors or timeouts
-
-Enable verbose mode to see detailed Java output:
+Verify your API key is correctly set in the Docker args:
 
 ```json
-{
-  "mcpServers": {
-    "viewmapper": {
-      "env": {
-        "VIEWMAPPER_VERBOSE": "1"
-      }
-    }
-  }
-}
+"-e", "ANTHROPIC_API_KEY_FOR_VIEWMAPPER=sk-ant-your-actual-key"
 ```
 
-Check Claude Desktop logs for stderr output.
+### Issue: Docker container not starting
+
+Test the container manually:
+
+```bash
+docker run -i --rm \
+  -e ANTHROPIC_API_KEY_FOR_VIEWMAPPER="sk-ant-..." \
+  -e VIEWMAPPER_CONNECTION="test://simple_ecommerce" \
+  viewmapper:478
+```
 
 ### Issue: Conversation context not working
 
 The MCP server maintains conversation history automatically. If conversations aren't connected:
 
 1. Verify multiple messages are being sent in same chat window
-2. Enable verbose mode to see enhanced prompts
-3. Check Claude Desktop logs for errors
+2. Check Claude Desktop logs for errors
+3. Rebuild Docker image if you've made recent changes
 
 ## Additional Documentation
 

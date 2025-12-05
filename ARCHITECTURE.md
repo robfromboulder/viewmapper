@@ -386,28 +386,55 @@ graph TB
 
 ## Installation & Deployment
 
-### Build Process
+### Production Deployment (Docker)
+
+**Recommended approach** - Bundles all dependencies in a container.
+
 ```bash
-# 1. Build Java CLI
+# build Docker image
+cd viewmapper-mcp-server
+docker image rm -f viewmapper:478 && docker build --no-cache -t viewmapper:478 .
+```
+
+### Claude Desktop Configuration (Production)
+```json
+{
+  "mcpServers": {
+    "viewmapper-mcp-server": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "-e", "ANTHROPIC_API_KEY_FOR_VIEWMAPPER=sk-ant-...",
+        "-e", "VIEWMAPPER_CONNECTION=test://simple_ecommerce",
+        "viewmapper:478"
+      ]
+    }
+  }
+}
+```
+
+### Development Setup (Local Python)
+
+For developers making changes to the MCP server:
+
+```bash
+# 1. build Java CLI
 cd viewmapper-agent
 mvn clean package
 # Produces: target/viewmapper-478.jar
 
-# 2. Install to user bin (optional)
-cp target/viewmapper-478.jar /usr/local/bin
-
-# 3. Set up Python MCP
+# 2. set up Python MCP
 cd ../viewmapper-mcp-server
 python3.14 -m venv venv
 source venv/bin/activate
 pip install -e ".[dev]"  # install with dev dependencies (includes pytest)
 ```
 
-### Claude Desktop Configuration
+### Claude Desktop Configuration (Development)
 ```json
 {
   "mcpServers": {
-    "viewmapper": {
+    "viewmapper-mcp-server": {
       "command": "/absolute/path/to/viewmapper/viewmapper-mcp-server/venv/bin/python",
       "args": ["mcp_server.py"],
       "cwd": "/absolute/path/to/viewmapper/viewmapper-mcp-server",

@@ -280,17 +280,40 @@ VIEWMAPPER_VERBOSE="1"
 
 ### Claude Desktop Configuration
 
+**Production (Docker - Recommended):**
+
 Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
-    "viewmapper": {
-      "command": "python",
-      "args": ["-m", "viewmapper_mcp_server"],
+    "viewmapper-mcp-server": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "-e", "ANTHROPIC_API_KEY_FOR_VIEWMAPPER=sk-ant-your-key-here",
+        "-e", "VIEWMAPPER_CONNECTION=test://simple_ecommerce",
+        "viewmapper:478"
+      ]
+    }
+  }
+}
+```
+
+**Development (Local Python):**
+
+For developers making changes to the MCP server:
+
+```json
+{
+  "mcpServers": {
+    "viewmapper-mcp-server": {
+      "command": "/absolute/path/to/viewmapper/viewmapper-mcp-server/venv/bin/python",
+      "args": ["mcp_server.py"],
+      "cwd": "/absolute/path/to/viewmapper/viewmapper-mcp-server",
       "env": {
-        "ANTHROPIC_API_KEY_FOR_VIEWMAPPER": "your-key-here",
-        "VIEWMAPPER_JAR": "/absolute/path/to/viewmapper-478.jar",
+        "ANTHROPIC_API_KEY_FOR_VIEWMAPPER": "sk-ant-your-key-here",
+        "VIEWMAPPER_JAR": "/absolute/path/to/viewmapper-agent/target/viewmapper-478.jar",
         "VIEWMAPPER_CONNECTION": "test://simple_ecommerce"
       }
     }
