@@ -17,8 +17,7 @@ The recommended way to use ViewMapper is via Docker, which bundles all dependenc
 
 ```bash
 cd viewmapper-mcp-server
-
-# build without cache for clean build
+cp ../viewmapper-agent/target/viewmapper-478.jar .
 docker image rm -f viewmapper:478 && docker build --no-cache -t viewmapper:478 .
 ```
 

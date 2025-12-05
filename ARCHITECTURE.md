@@ -391,8 +391,8 @@ graph TB
 **Recommended approach** - Bundles all dependencies in a container.
 
 ```bash
-# build Docker image
 cd viewmapper-mcp-server
+cp ../viewmapper-agent/target/viewmapper-478.jar .
 docker image rm -f viewmapper:478 && docker build --no-cache -t viewmapper:478 .
 ```
 
@@ -425,6 +425,7 @@ mvn clean package
 
 # 2. set up Python MCP
 cd ../viewmapper-mcp-server
+cp ../viewmapper-agent/target/viewmapper-478.jar .
 python3.14 -m venv venv
 source venv/bin/activate
 pip install -e ".[dev]"  # install with dev dependencies (includes pytest)
