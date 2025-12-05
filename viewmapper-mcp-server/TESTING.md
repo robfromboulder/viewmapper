@@ -18,21 +18,14 @@ brew install python@3.14
 ```bash
 sudo apt install python3.14 python3.14-venv
 ```
-**Windows:**
-Download from https://www.python.org/downloads/
 
 ## Running Unit Tests
 
 ### 1. Create Virtual Environment
 
 ```bash
-# macOS/Linux
 python3.14 -m venv venv
 source venv/bin/activate
-
-# Windows
-python -m venv venv
-venv\Scripts\activate
 ```
 
 ### 2. Install Dependencies
