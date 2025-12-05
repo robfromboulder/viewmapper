@@ -11,6 +11,14 @@
 - Unit tests with mocked subprocess calls (229 lines)
 - Single tool: `explore_trino_views` with natural language queries
 
+## Completed Features
+
+### Live Trino Support via JDBC ✅
+- Pass-through of `jdbc:trino://...` connections to Java CLI
+- Schema parameter support with catalog.schema format guidance
+- LLM instructed to use `catalog.schema` format (e.g., `viewzoo.example`)
+- Java CLI handles catalog validation and provides clear error messages
+
 ## Future Enhancements
 
 ### Phase 1: Portable Java Execution (High Priority)
@@ -23,12 +31,7 @@
 - Isolate conversation histories per session
 - Prevent context bleeding across Claude Desktop sessions
 
-### Phase 3: Live Trino Support (Medium Priority)
-- When Java CLI adds JDBC support, pass through `jdbc:trino://...` connections
-- Remove test-only dataset limitation
-- Support real-time schema exploration
-
-### Phase 4: Structured Context (Low Priority - Option B)
+### Phase 3: Structured Context (Low Priority - Option B)
 - Add `--context` parameter to Java CLI
 - Implement LangChain4j `ChatMemory` in agent
 - Pass JSON context instead of text-based prompt enhancement
@@ -589,13 +592,14 @@ cmd = ["/Users/robfromboulder/Tools/jdk-24.0.2+12/Contents/Home/bin/java", ...]
 
 **Mitigation:** Typically not an issue (single schema exploration), future enhancement
 
-### 3. No Live Trino Support
+### 3. Schema Parameter Handling
 
-**Impact:** Only test datasets available
+**Note:** Schema parameter added to MCP tool schema but is optional
 
-**Current:** Java CLI doesn't support `jdbc:trino://...` connections
-
-**Mitigation:** Depends on Java agent Phase 1 (JDBC connectivity)
+**Behavior:**
+- If provided, passed to Java CLI via `--schema` parameter
+- LLM guided to use `catalog.schema` format in tool description
+- Java CLI validates and provides clear error messages for mismatched formats
 
 ### 4. 60-Second Timeout
 

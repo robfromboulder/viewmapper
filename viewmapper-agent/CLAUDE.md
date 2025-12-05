@@ -13,25 +13,30 @@
 - Comprehensive test suite: 18 test files, all passing
 - Embedded JAR resources (no external file dependencies)
 
+## Completed Features
+
+### JDBC Connectivity ✅
+- Live Trino connections via `jdbc:trino://user:pass@host:port/catalog`
+- Single-query schema introspection from `information_schema.views`
+- Elegant catalog handling:
+  - URL with catalog → schema parameter must be simple name (catalog-bound)
+  - URL without catalog → schema parameter must be `catalog.schema` format
+- No connection pooling (stateless CLI design)
+
 ## Future Enhancements
 
-### Phase 1: JDBC Connectivity (High Priority)
-- Live Trino connections via `jdbc:trino://...`
-- Schema introspection (replace test datasets)
-- Connection pooling and timeout handling
-
-### Phase 2: Column-Level Lineage (Medium Priority)
+### Phase 1: Column-Level Lineage (Medium Priority)
 - Track column-to-column dependencies
 - Extend `TableReference` to include column info
 - New tool: `traceColumnLineage(view, column)`
 
-### Phase 3: Performance Optimization (Low Priority)
+### Phase 2: Performance Optimization (Low Priority)
 - Cache betweenness centrality calculations
 - Lazy initialization for metrics
 - Incremental graph updates
 - Parallel subgraph extraction
 
-### Phase 4: Enhanced Analysis (Future)
+### Phase 3: Enhanced Analysis (Future)
 - Detect circular dependencies explicitly
 - Impact analysis: "What breaks if I change view X?"
 - Schema diff: Compare two schema versions
@@ -92,7 +97,7 @@ Results → Claude → Natural Language Response
 
 1. **CLI Layer** (`Main.java`, `RunCommand.java`)
    - Picocli-based command-line interface
-   - Loads test data or connects to Trino (future)
+   - Loads test data or connects to live Trino via JDBC
    - Formats output (text or JSON)
 
 2. **Agent Layer** (`agent/`)
@@ -132,8 +137,10 @@ java -jar viewmapper-478.jar run --connection <string> [options] <prompt>
 - `<prompt>` (required) - Natural language question about schema
 - `--connection <string>` (required) - Connection string
   - `test://<dataset_name>` - Load from embedded JSON
-  - `jdbc:trino://...` - Future JDBC support (not yet implemented)
-- `--schema <name>` - Trino schema name (for future JDBC)
+  - `jdbc:trino://user:pass@host:port/catalog` - Live Trino connection
+- `--schema <name>` - Trino schema name (required for JDBC connections)
+  - Simple name if URL has catalog: `--schema analytics`
+  - Qualified name if URL has no catalog: `--schema viewzoo.example`
 - `--output <format>` - Output format: `text` (default) or `json`
 - `--verbose` - Show debugging information
 
@@ -145,17 +152,29 @@ java -jar viewmapper-478.jar run --connection <string> [options] <prompt>
 
 **Examples:**
 ```bash
-# Simple query
+# Test dataset
 java -jar target/viewmapper-478.jar run --connection "test://simple_ecommerce" "Show me the full dependency diagram"
 
-# Entry point exploration
-java -jar target/viewmapper-478.jar run --connection "test://complex_enterprise" "What are the central hub views?"
+# JDBC with catalog in URL
+java -jar target/viewmapper-478.jar run \
+  --connection "jdbc:trino://user:pass@localhost:8080/production" \
+  --schema analytics \
+  "What are the high-impact views?"
+
+# JDBC without catalog in URL
+java -jar target/viewmapper-478.jar run \
+  --connection "jdbc:trino://user:pass@localhost:8080" \
+  --schema viewzoo.example \
+  "Show me the dependency diagram"
 
 # JSON output
 java -jar target/viewmapper-478.jar run --connection "test://moderate_analytics" --output json "Analyze this schema"
 
 # Verbose debugging
-java -jar target/viewmapper-478.jar run --connection "test://simple_ecommerce" --verbose "What are the leaf views?"
+java -jar target/viewmapper-478.jar run \
+  --connection "jdbc:trino://user:pass@localhost:8080/prod" \
+  --schema analytics \
+  --verbose "What are the leaf views?"
 ```
 
 ### Agent System
@@ -635,9 +654,10 @@ SELECT * FROM temp JOIN schema3.table2 ON temp.id = table2.id
 - Does not track column-to-column lineage
 - Future enhancement opportunity
 
-### 4. JDBC Support
-- Not yet implemented (only test:// connections work)
-- Future enhancement
+### 4. Catalog Handling
+- JDBC URLs with catalog bind conversation to that catalog
+- JDBC URLs without catalog allow querying any catalog.schema
+- Schema parameter parsing uses first period as separator (`split("\\.", 2)`)
 
 ---
 

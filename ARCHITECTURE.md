@@ -117,7 +117,7 @@ Agent: [Checks if manageable, calls GenerateMermaid]
 - **CLI Framework:** Picocli 4.7.5 (command-line argument parsing)
 - **LLM Framework:** LangChain4j 0.35.0 with Anthropic integration
 - **SQL Parser:** Trino Parser 478
-- **Database Client:** Trino JDBC 478 (dependency included, not yet implemented)
+- **Database Client:** Trino JDBC 478 (fully implemented)
 - **JSON:** Jackson 2.16.1
 - **Graph Analysis:** JGraphT 1.5.2 (fully integrated)
 - **Build Tool:** Maven with Shade plugin (fat JAR)
@@ -177,7 +177,7 @@ viewmapper/
 - ✅ Graph Analysis (JGraphT): Fully implemented (high-impact, leaf, centrality, subgraph)
 - ✅ LangChain4j Agent: Fully implemented with 4 tool executors
 - ✅ Dataset Loading: JSON embedded in JAR with test:// connection URLs
-- ⏳ Trino JDBC Connection: Not yet implemented (uses datasets for testing)
+- ✅ Trino JDBC Connection: Fully implemented with elegant catalog handling
 - ✅ Python MCP Wrapper: Fully implemented with context management
 
 **Simplified Design Changes:**
@@ -219,7 +219,102 @@ class DependencyVisitor extends DefaultTraversalVisitor<Void, Void> {
 }
 ```
 
-### 2. DependencyAnalyzer (Java)
+### 2. JDBC Connection & Schema Loading (Java)
+
+**Purpose:** Load view definitions from live Trino databases.
+
+**Connection URL Format:**
+```
+jdbc:trino://username:password@host:port/catalog    # With catalog
+jdbc:trino://username:password@host:port            # Without catalog
+```
+
+**Design Decision: Elegant Catalog Handling**
+- **URL with catalog:** Schema parameter must be simple name (e.g., `analytics`)
+  - Conversation is "bound" to that catalog
+  - Prevents accidentally querying other catalogs
+- **URL without catalog:** Schema parameter must be qualified (e.g., `viewzoo.example`)
+  - Enables multi-catalog exploration in single session
+  - LLM extracts catalog and schema from user query
+
+**Key Implementation (RunCommand.java:118-164):**
+```java
+private void loadFromJdbc(DependencyAnalyzer analyzer, String jdbcUrl, String schemaName) throws Exception {
+    try (Connection conn = DriverManager.getConnection(jdbcUrl)) {
+        String urlCatalog = conn.getCatalog();
+        String catalog, schema;
+
+        // Catalog validation
+        if (urlCatalog != null && !urlCatalog.isEmpty()) {
+            if (schemaName.contains(".")) throw new IllegalArgumentException(...);
+            catalog = urlCatalog;
+            schema = schemaName;
+        } else {
+            if (!schemaName.contains(".")) throw new IllegalArgumentException(...);
+            String[] parts = schemaName.split("\\.", 2); // First period only
+            catalog = parts[0];
+            schema = parts[1];
+        }
+
+        // Single query to get all views
+        String sql = "SELECT table_name, view_definition FROM information_schema.views " +
+                     "WHERE table_catalog = ? AND table_schema = ?";
+
+        // Load into analyzer
+        while (rs.next()) {
+            String fullyQualifiedName = catalog + "." + schema + "." + rs.getString("table_name");
+            analyzer.addView(fullyQualifiedName, rs.getString("view_definition"));
+        }
+    }
+}
+```
+
+**Design Rationale:**
+- No separate connection manager classes (YAGNI principle)
+- Let JDBC driver handle URL parsing and validation
+- Single SQL query (not N+1 queries) for efficiency
+- Try-with-resources for automatic cleanup
+- Clear error messages guide user to correct usage
+
+**MCP Integration:**
+- LLM receives tool schema with `schema` parameter
+- Description guides LLM to use `catalog.schema` format
+- Java validation provides helpful errors if format mismatches configuration
+
+**Example Flows:**
+
+1. **No-catalog URL (most common for MCP):**
+   - Config: `TRINO_CONNECTION="jdbc:trino://user:pass@host:8080"`
+   - User: "show me viewzoo.example"
+   - LLM: `--schema viewzoo.example`
+   - Result: ✅ Works! Extracts catalog=viewzoo, schema=example
+
+2. **Catalog-bound URL (team-specific):**
+   - Config: `TRINO_CONNECTION="jdbc:trino://user:pass@host:8080/production"`
+   - User: "show me viewzoo.example"
+   - LLM: `--schema viewzoo.example`
+   - Result: ❌ Error: "Connection is bound to catalog 'production'. Use simple schema name."
+   - User adjusts: "show me analytics"
+   - LLM: `--schema analytics`
+   - Result: ✅ Works! Uses catalog=production, schema=analytics
+
+3. **CLI usage (no-catalog):**
+   ```bash
+   java -jar viewmapper.jar run \
+     --connection "jdbc:trino://user:pass@host:8080" \
+     --schema viewzoo.example \
+     "Show me dependencies"
+   ```
+
+4. **CLI usage (catalog-bound):**
+   ```bash
+   java -jar viewmapper.jar run \
+     --connection "jdbc:trino://user:pass@host:8080/production" \
+     --schema analytics \
+     "Show me dependencies"
+   ```
+
+### 3. DependencyAnalyzer (Java)
 
 **Purpose:** Build and analyze dependency graph.
 
@@ -227,26 +322,26 @@ class DependencyVisitor extends DefaultTraversalVisitor<Void, Void> {
 ```java
 public class DependencyAnalyzer {
     private DirectedGraph<String, DefaultEdge> graph;
-    
-    // Query Trino metadata and parse SQL to build graph
-    public void buildDependencyGraph(String schema);
-    
+
+    // Add views to graph (from test datasets or JDBC)
+    public void addView(String viewName, String sql);
+
     // Analyze graph structure
     public Map<String, Integer> findHighImpactViews();
     public List<String> findLeafViews();
     public Map<String, Double> calculateCentrality();
-    
+
     // Extract focused subgraph
-    public DependencyGraph findSubgraph(
-        String focusView, 
-        int depthUpstream, 
+    public Set<String> findSubgraph(
+        String focusView,
+        int depthUpstream,
         int depthDownstream,
         int maxNodes
     );
 }
 ```
 
-### 3. ViewMapperAgent (Java)
+### 4. ViewMapperAgent (Java)
 
 **Purpose:** LangChain4j-powered agent orchestration with embedded system prompt.
 
@@ -294,7 +389,7 @@ public class ViewMapperAgent {
 
 **Design Note:** Removed SchemaExplorationService layer - RunCommand now uses ViewMapperAgent directly.
 
-### 4. System Prompt Strategy
+### 5. System Prompt Strategy
 
 **Purpose:** Provide reasoning capabilities to guide exploration.
 
@@ -318,7 +413,7 @@ Available tools:
 - GenerateMermaid: Create diagram from subgraph
 ```
 
-### 5. Python MCP Wrapper
+### 6. Python MCP Wrapper
 
 **Purpose:** Handle MCP protocol, delegate to Java CLI, manage conversation context.
 
@@ -468,9 +563,10 @@ pip install -e ".[dev]"  # install with dev dependencies (includes pytest)
 - Context management across turns
 
 ### End-to-End
-- Load test schema into local Trino
-- Execute via Claude Desktop
-- Verify interactive exploration flow
+- ✅ Execute with test datasets via CLI
+- ✅ Execute with live Trino via JDBC
+- ✅ Execute via Claude Desktop with MCP
+- ✅ Verify interactive exploration flow
 
 ## Success Metrics
 
@@ -479,6 +575,8 @@ pip install -e ".[dev]"  # install with dev dependencies (includes pytest)
 - ✅ Identifies meaningful entry points
 - ✅ Generates accurate dependency graphs
 - ✅ Handles schemas with 1000+ views
+- ✅ Connects to live Trino databases via JDBC
+- ✅ Supports both catalog-bound and multi-catalog configurations
 
 ### User Experience
 - ✅ Agent suggests next steps intelligently
@@ -494,12 +592,13 @@ pip install -e ".[dev]"  # install with dev dependencies (includes pytest)
 
 ## Future Enhancements
 
-1. **Interactive Diagrams:** Export React Flow components for web embedding
-2. **Caching:** Cache parsed dependency graphs to avoid re-parsing
-3. **Multiple Catalogs:** Support cross-catalog dependencies
-4. **Performance Metrics:** Annotate views with query statistics
-5. **Export Formats:** SVG, PNG, GraphML for external tools
-6. **Column-Level Lineage:** Track column dependencies within views
+1. **Column-Level Lineage:** Track column dependencies within views
+2. **Interactive Diagrams:** Export React Flow components for web embedding
+3. **Caching:** Cache parsed dependency graphs to avoid re-parsing
+4. **Cross-Catalog Dependencies:** Track dependencies that span multiple catalogs
+5. **Performance Metrics:** Annotate views with query statistics from Trino
+6. **Export Formats:** SVG, PNG, GraphML for external tools
+7. **Connection Pooling:** For high-frequency JDBC usage (currently stateless)
 
 ## Key References
 
@@ -530,3 +629,9 @@ pip install -e ".[dev]"  # install with dev dependencies (includes pytest)
    - "Not just executing tools - reasoning about problem space"
    - "Assesses complexity, suggests strategy, guides user"
    - "Progressive disclosure based on graph analysis"
+
+5. **How does JDBC catalog handling work?**
+   - "Elegant validation: URL with catalog = bound conversation, no catalog = multi-catalog exploration"
+   - "Single SQL query using information_schema - efficient and simple"
+   - "LLM guidance via MCP tool schema steers toward catalog.schema format"
+   - "No over-engineering: let JDBC driver handle URL parsing, no connection manager classes"

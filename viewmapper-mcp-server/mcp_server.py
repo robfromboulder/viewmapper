@@ -120,6 +120,13 @@ async def list_tools() -> list[Tool]:
                             "- 'Focus on customer_360 view with 2 levels upstream'\n"
                             "- 'What are the leaf views?'"
                         )
+                    },
+                    "schema": {
+                        "type": "string",
+                        "description": (
+                            "Schema to analyze in 'catalog.schema' format (e.g., 'viewzoo.example', 'production.analytics'). "
+                            "Extract both catalog and schema name from the user's query."
+                        )
                     }
                 },
                 "required": ["query"]
@@ -148,6 +155,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 
     # Extract arguments
     query = arguments.get("query")
+    schema = arguments.get("schema")
 
     if not query:
         return [TextContent(
@@ -168,6 +176,11 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         "--connection", CONNECTION,
         "--output", "text"
     ]
+
+    # Add schema parameter if provided
+    if schema:
+        cmd.extend(["--schema", schema])
+
     if VERBOSE:
         cmd.append("--verbose")
 

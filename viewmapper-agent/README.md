@@ -18,26 +18,41 @@ Build binary package:
 mvn clean package
 ```
 
-Run with Trino connection:
+### Running with Test Datasets
+
 ```bash
-java -jar target/viewmapper-478.jar run --connection "jdbc:trino://<...>" "<your prompt>"
+java -jar target/viewmapper-478.jar run --connection "test://simple_ecommerce" "Show me the dependency diagram"
 ```
 
-Run with test dataset:
+### Running with Live Trino Connection
+
+**Option 1: Catalog in URL (catalog-bound conversation)**
 ```bash
-java -jar target/viewmapper-478.jar run --connection "test://<dataset_name>" "<your prompt>"
+java -jar target/viewmapper-478.jar run \
+  --connection "jdbc:trino://user:password@localhost:8080/production" \
+  --schema analytics \
+  "What are the high-impact views?"
 ```
 
-Run with different outputs:
+**Option 2: No catalog in URL (multi-catalog queries)**
 ```bash
-# Default text output
-java -jar target/viewmapper-478.jar run --connection "test://simple_ecommerce" "Analyze this schema"
+java -jar target/viewmapper-478.jar run \
+  --connection "jdbc:trino://user:password@localhost:8080" \
+  --schema viewzoo.example \
+  "Show me the dependency diagram"
+```
 
+### Other Options
+
+```bash
 # JSON output
 java -jar target/viewmapper-478.jar run --connection "test://simple_ecommerce" --output json "Analyze this schema"
 
-# Verbose mode (shows agent reasoning)
-java -jar target/viewmapper-478.jar run --connection "test://simple_ecommerce" --verbose "What are the leaf views?"
+# Verbose mode (shows agent reasoning and connection details)
+java -jar target/viewmapper-478.jar run \
+  --connection "jdbc:trino://user:pass@localhost:8080/prod" \
+  --schema analytics \
+  --verbose "What are the leaf views?"
 ```
 
 ## Using Test Datasets
