@@ -479,26 +479,80 @@ graph TB
 - Downstream dependents: Green
 - Tables vs. views: Different shapes
 
-## Installation & Deployment
+## Build & Release Process
 
-### Automated Build (Recommended)
+### Version Numbering Convention
 
-**Use the automated build script** at project root to build everything in one command:
+**Local Development:**
+- Local builds always use version `478` (e.g., `viewmapper:478`)
+- This is the version built by `./build.sh`
+- Never used in public repositories or documentation
 
+**Public Releases:**
+- Public releases use `478` + lowercase letter (e.g., `478a`, `478b`, `478c`)
+- Format: `robfromboulder/viewmapper-mcp-server:478c`
+- **IMPORTANT:** Never use the `latest` tag
+  - `latest` creates ambiguity and unpredictable caching behavior
+  - All references (docs, configs, examples) must use explicit version tags
+  - Users must always specify exact version to pull/run
+
+### Build Scripts
+
+The project includes three automated scripts at the root level:
+
+**1. `./clean.sh` - Remove all build artifacts**
+```bash
+./clean.sh
+```
+
+Removes:
+- `viewmapper-agent/target/` - Maven build output (29M)
+- `viewmapper-agent/dependency-reduced-pom.xml` - Maven Shade artifact
+- `viewmapper-mcp-server/venv/` - Python virtual environment (75M)
+- `viewmapper-mcp-server/__pycache__/` - Python bytecode cache
+- `viewmapper-mcp-server/viewmapper-478.jar` - Copied JAR (27M)
+- `viewmapper-mcp-server/.pytest_cache/` - Pytest cache
+- Docker image `viewmapper:478` (~457M)
+- Docker build cache and system cache
+
+Result: Project reduces from ~134M to ~3M (source code only)
+
+**2. `./build.sh` - Build local development version**
 ```bash
 ./build.sh
 ```
 
-This script:
+Steps:
 1. Checks prerequisites (Maven, Docker, Java)
 2. Builds viewmapper-agent JAR with `mvn clean package`
 3. Copies JAR to viewmapper-mcp-server directory
-4. Builds Docker container with `--no-cache`
+4. Builds Docker container `viewmapper:478` with `--no-cache`
 5. Provides color-coded progress output and build summary
+
+**3. `./release.sh <version>` - Release to DockerHub**
+```bash
+./release.sh 478c
+```
+
+Steps:
+1. Validates version format (must be `478[a-z]`)
+2. Verifies git working directory is clean (no uncommitted changes)
+3. Runs `./clean.sh` to ensure fresh build
+4. Runs `./build.sh` to create artifacts
+5. Builds and pushes multi-platform Docker image:
+   - Platforms: `linux/amd64`, `linux/arm64`
+   - Tag: `robfromboulder/viewmapper-mcp-server:478c`
+   - Includes SBOM and provenance metadata
+   - Uses `docker buildx` with `--no-cache`
+6. Creates annotated git tag `v478c`
+7. Pushes git tag to origin
+8. Displays summary with next steps
+
+**Note:** When run via Claude Code, you'll be prompted to approve the `git push` command before it executes, providing a final checkpoint.
 
 ### Manual Build (For Debugging)
 
-**Manual approach** if you need fine-grained control or trying to diagnose one step of the build process:
+If you need fine-grained control or want to diagnose a specific build step:
 
 ```bash
 cd viewmapper-agent
@@ -508,7 +562,26 @@ cp ../viewmapper-agent/target/viewmapper-478.jar .
 docker image rm -f viewmapper:478 && docker build --no-cache -t viewmapper:478 .
 ```
 
-### Claude Desktop Configuration (Docker)
+### Claude Desktop Configuration (Docker - Production)
+
+**For production use with published release:**
+```json
+{
+  "mcpServers": {
+    "viewmapper-mcp-server": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "-e", "ANTHROPIC_API_KEY_FOR_VIEWMAPPER=sk-ant-...",
+        "-e", "VIEWMAPPER_CONNECTION=test://simple_ecommerce",
+        "robfromboulder/viewmapper-mcp-server:478c"
+      ]
+    }
+  }
+}
+```
+
+**For local development with local build:**
 ```json
 {
   "mcpServers": {
