@@ -50,10 +50,10 @@ public class RunCommand implements Callable<Integer> {
                 loadFromFile(analyzer, datasetName);
             } else if (connection.startsWith("jdbc:trino://")) {
                 if (schema == null || schema.trim().isEmpty())
-                    throw new IllegalArgumentException("--schema parameter is required for JDBC connections\nExample: --connection jdbc:trino://user:pass@host:8080/catalog --schema analytics");
+                    throw new IllegalArgumentException("--schema parameter is required for JDBC connections\nExamples:\n  --connection jdbc:trino://host:8080/catalog?user=youruser --schema analytics\n  --connection jdbc:trino://host:8080?user=youruser --schema catalog.analytics");
                 loadFromJdbc(analyzer, connection, schema);
             } else {
-                throw new IllegalArgumentException("Invalid connection string. Must start with 'test://' or 'jdbc:trino://'\nExamples:\n  --connection test://simple_ecommerce\n  --connection jdbc:trino://user:pass@localhost:8080/catalog --schema analytics");
+                throw new IllegalArgumentException("Invalid connection string. Must start with 'test://' or 'jdbc:trino://'\nExamples:\n  --connection test://simple_ecommerce\n  --connection jdbc:trino://host:8080/catalog?user=youruser --schema analytics\n  --connection jdbc:trino://host:8080?user=youruser --schema catalog.analytics");
             }
 
             // call agent with dependency analyzer and user prompt
@@ -142,9 +142,12 @@ public class RunCommand implements Callable<Integer> {
                 schema = parts[1];
             }
 
+            // when session catalog is not set, use fully-qualified information_schema reference
+            String infoSchemaTable = (urlCatalog != null && !urlCatalog.trim().isEmpty()) ? "information_schema.views" : catalog + ".information_schema.views";
+
             // query for all views and their SQL definitions
-            if (verbose) System.err.println("Querying for catalog: " + catalog + ", schema: " + schema);
-            String sql = "SELECT table_name, view_definition FROM information_schema.views WHERE table_catalog = ? AND table_schema = ? ORDER BY table_name";
+            if (verbose) System.err.println("Querying for infoSchemaTable: " + infoSchemaTable + ", catalog: " + catalog + ", schema: " + schema);
+            String sql = "SELECT table_name, view_definition FROM " + infoSchemaTable + " WHERE table_catalog = ? AND table_schema = ? ORDER BY table_name";
             try (PreparedStatement stmt = conn.prepareStatement(sql)) {
                 stmt.setString(1, catalog);
                 stmt.setString(2, schema);
