@@ -1,0 +1,38 @@
+# Build artifacts
+target/
+*.jar
+dependency-reduced-pom.xml
+
+# Python artifacts
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# Docker artifacts
+.docker/
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+
+# Logs
+*.log
+
+# Test outputs
+htmlcov/
+.coverage
