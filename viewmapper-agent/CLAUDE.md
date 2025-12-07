@@ -16,11 +16,11 @@
 ## Completed Features
 
 ### JDBC Connectivity ✅
-- Live Trino connections via `jdbc:trino://user:pass@host:port/catalog`
+- Live Trino connections via JDBC with optional catalog in URL
 - Single-query schema introspection from `information_schema.views`
 - Elegant catalog handling:
-  - URL with catalog → schema parameter must be simple name (catalog-bound)
-  - URL without catalog → schema parameter must be `catalog.schema` format
+  - URL with catalog (`jdbc:trino://host:port/catalog?user=username`) → schema parameter must be simple name (catalog-bound)
+  - URL without catalog (`jdbc:trino://host:port?user=username`) → schema parameter must be `catalog.schema` format
 - No connection pooling (stateless CLI design)
 
 ## Future Enhancements
@@ -137,7 +137,8 @@ java -jar viewmapper-478.jar run --connection <string> [options] <prompt>
 - `<prompt>` (required) - Natural language question about schema
 - `--connection <string>` (required) - Connection string
   - `test://<dataset_name>` - Load from embedded JSON
-  - `jdbc:trino://user:pass@host:port/catalog` - Live Trino connection
+  - `jdbc:trino://host:port/catalog?user=username` - Live Trino connection with catalog
+  - `jdbc:trino://host:port?user=username` - Live Trino connection without catalog
 - `--schema <name>` - Trino schema name (required for JDBC connections)
   - Simple name if URL has catalog: `--schema analytics`
   - Qualified name if URL has no catalog: `--schema viewzoo.example`
@@ -157,13 +158,13 @@ java -jar target/viewmapper-478.jar run --connection "test://simple_ecommerce" "
 
 # JDBC with catalog in URL
 java -jar target/viewmapper-478.jar run \
-  --connection "jdbc:trino://user:pass@localhost:8080/production" \
+  --connection "jdbc:trino://localhost:8080/production?user=youruser" \
   --schema analytics \
   "What are the high-impact views?"
 
 # JDBC without catalog in URL
 java -jar target/viewmapper-478.jar run \
-  --connection "jdbc:trino://user:pass@localhost:8080" \
+  --connection "jdbc:trino://localhost:8080?user=youruser" \
   --schema viewzoo.example \
   "Show me the dependency diagram"
 
@@ -172,7 +173,7 @@ java -jar target/viewmapper-478.jar run --connection "test://moderate_analytics"
 
 # Verbose debugging
 java -jar target/viewmapper-478.jar run \
-  --connection "jdbc:trino://user:pass@localhost:8080/prod" \
+  --connection "jdbc:trino://localhost:8080/prod?user=youruser" \
   --schema analytics \
   --verbose "What are the leaf views?"
 ```

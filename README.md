@@ -99,38 +99,38 @@ and will suggest views to focus upon instead:
 
 ### 3. Edit `claude_desktop_config.json` and add a new server
 
-To explore all catalogs available on Trino: 
-```bash
+**For connecting to a remote Trino server:**
+```json
   "mcpServers": {
     "viewmapper-mcp-server": {
       "command": "docker",
       "args": [
         "run", "-i", "--rm",
         "-e", "ANTHROPIC_API_KEY=sk-ant-...",
-        "-e", "VIEWMAPPER_CONNECTION=jdbc:trino://user:pass@host:8080",
+        "-e", "VIEWMAPPER_CONNECTION=jdbc:trino://trino.example.com:8080/catalog?user=youruser",
         "robfromboulder/viewmapper-mcp-server:478a"
       ]
     }
   }
 ```
 
-To limit exploration a single catalog only:
-```bash
+**For connecting to Trino running on your local machine:**
+```json
   "mcpServers": {
     "viewmapper-mcp-server": {
       "command": "docker",
       "args": [
         "run", "-i", "--rm",
         "-e", "ANTHROPIC_API_KEY=sk-ant-...",
-        "-e", "VIEWMAPPER_CONNECTION=jdbc:trino://user:pass@host:8080/catalog",
+        "-e", "VIEWMAPPER_CONNECTION=jdbc:trino://host.docker.internal:8080/catalog?user=youruser",
         "robfromboulder/viewmapper-mcp-server:478a"
       ]
     }
   }
 ```
 
-To use predefined test data instead of a live Trino connection:
-```bash
+**For testing with predefined sample data:**
+```json
   "mcpServers": {
     "viewmapper-mcp-server": {
       "command": "docker",
@@ -145,7 +145,11 @@ To use predefined test data instead of a live Trino connection:
 ```
 
 > [!IMPORTANT]
-> The `claude_desktop_config.json` file must be valid JSON in order to be parsed by Claude Desktop.
+> **JDBC URL Format:** `jdbc:trino://hostname:port/catalog?user=username` or `jdbc:trino://hostname:port?user=username`
+> - The **catalog** in the URL is optional. If omitted, you must specify catalog when querying (e.g., `viewzoo.example` instead of just `example`)
+> - The **user** parameter is required
+> - For local connections, use `host.docker.internal` instead of `localhost` so the Docker container can reach your host machine
+> - The `claude_desktop_config.json` file must be valid JSON
 
 ### 4. Restart Claude Desktop or click **Developer | Reload MCP Configuration**
 
@@ -193,9 +197,25 @@ To use predefined test data instead of a live Trino connection:
 
 ### Connection errors to Trino
 
-* Double-check your connection string format: `jdbc:trino://user:pass@host:8080` or `jdbc:trino://user:pass@host:8080/catalog`.
-* Verify your credentials and network access to the Trino server.
-* Try the test connection first: `test://simple_ecommerce`.
+**"No views found" or empty schema errors**
+* Verify the schema name matches your Trino configuration
+* For JDBC URLs with catalog: Use simple schema name like `analytics`
+* For JDBC URLs without catalog: Use qualified schema like `viewzoo.analytics`
+* Use a Trino client to verify views exist: `SHOW SCHEMAS FROM catalog;` and `SHOW TABLES FROM catalog.schema;`
+
+**"Authentication failed" or "User must be specified"**
+* Your JDBC URL is missing the required `user` parameter
+* Fix: Add `?user=youruser` to your JDBC URL
+
+**"Connection refused" when connecting to localhost**
+* Docker containers can't reach `localhost` on the host machine
+* Fix: Use `host.docker.internal` instead of `localhost` in your JDBC URL
+* Example: `jdbc:trino://host.docker.internal:7700/memory?user=youruser`
+
+**Other connection issues:**
+* Verify your credentials and network access to the Trino server
+* Try the test connection first: `test://simple_ecommerce`
+* Check the MCP logs via **Developer | Open MCP Log File** for detailed error messages
 
 ### Diagrams showing as text instead of rendering
 

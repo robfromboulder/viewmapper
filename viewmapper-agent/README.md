@@ -29,7 +29,7 @@ java -jar target/viewmapper-478.jar run --connection "test://simple_ecommerce" "
 **Option 1: Catalog in URL (catalog-bound conversation)**
 ```bash
 java -jar target/viewmapper-478.jar run \
-  --connection "jdbc:trino://user:password@localhost:8080/production" \
+  --connection "jdbc:trino://localhost:8080/production?user=youruser" \
   --schema analytics \
   "What are the high-impact views?"
 ```
@@ -37,7 +37,7 @@ java -jar target/viewmapper-478.jar run \
 **Option 2: No catalog in URL (multi-catalog queries)**
 ```bash
 java -jar target/viewmapper-478.jar run \
-  --connection "jdbc:trino://user:password@localhost:8080" \
+  --connection "jdbc:trino://localhost:8080?user=youruser" \
   --schema viewzoo.example \
   "Show me the dependency diagram"
 ```
@@ -50,7 +50,7 @@ java -jar target/viewmapper-478.jar run --connection "test://simple_ecommerce" -
 
 # Verbose mode (shows agent reasoning and connection details)
 java -jar target/viewmapper-478.jar run \
-  --connection "jdbc:trino://user:pass@localhost:8080/prod" \
+  --connection "jdbc:trino://localhost:8080/prod?user=youruser" \
   --schema analytics \
   --verbose "What are the leaf views?"
 ```

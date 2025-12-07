@@ -225,8 +225,8 @@ class DependencyVisitor extends DefaultTraversalVisitor<Void, Void> {
 
 **Connection URL Format:**
 ```
-jdbc:trino://username:password@host:port/catalog    # With catalog
-jdbc:trino://username:password@host:port            # Without catalog
+jdbc:trino://host:port/catalog?user=username    # With catalog
+jdbc:trino://host:port?user=username            # Without catalog
 ```
 
 **Design Decision: Elegant Catalog Handling**
@@ -256,14 +256,31 @@ private void loadFromJdbc(DependencyAnalyzer analyzer, String jdbcUrl, String sc
             schema = parts[1];
         }
 
-        // Single query to get all views
-        String sql = "SELECT table_name, view_definition FROM information_schema.views " +
-                     "WHERE table_catalog = ? AND table_schema = ?";
+        // When session catalog is not set, use fully-qualified information_schema reference
+        String infoSchemaTable = (urlCatalog != null && !urlCatalog.trim().isEmpty())
+                ? "information_schema.views"
+                : catalog + ".information_schema.views";
 
-        // Load into analyzer
-        while (rs.next()) {
-            String fullyQualifiedName = catalog + "." + schema + "." + rs.getString("table_name");
-            analyzer.addView(fullyQualifiedName, rs.getString("view_definition"));
+        // Query for all views and their SQL definitions
+        if (verbose) System.err.println("Querying for infoSchemaTable: " + infoSchemaTable +
+                                        ", catalog: " + catalog + ", schema: " + schema);
+        String sql = "SELECT table_name, view_definition FROM " + infoSchemaTable +
+                     " WHERE table_catalog = ? AND table_schema = ? ORDER BY table_name";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, catalog);
+            stmt.setString(2, schema);
+            try (ResultSet rs = stmt.executeQuery()) {
+                boolean empty = true;
+                while (rs.next()) {
+                    String viewName = rs.getString("table_name");
+                    String viewSql = rs.getString("view_definition");
+                    String fullyQualifiedName = catalog + "." + schema + "." + viewName;
+                    analyzer.addView(fullyQualifiedName, viewSql);
+                    empty = false;
+                }
+                if (empty) throw new IllegalArgumentException("No views found in " + catalog + "." + schema);
+            }
         }
     }
 }
@@ -284,13 +301,13 @@ private void loadFromJdbc(DependencyAnalyzer analyzer, String jdbcUrl, String sc
 **Example Flows:**
 
 1. **No-catalog URL (most common for MCP):**
-   - Config: `TRINO_CONNECTION="jdbc:trino://user:pass@host:8080"`
+   - Config: `TRINO_CONNECTION="jdbc:trino://host:8080?user=username"`
    - User: "show me viewzoo.example"
    - LLM: `--schema viewzoo.example`
    - Result: ✅ Works! Extracts catalog=viewzoo, schema=example
 
 2. **Catalog-bound URL (team-specific):**
-   - Config: `TRINO_CONNECTION="jdbc:trino://user:pass@host:8080/production"`
+   - Config: `TRINO_CONNECTION="jdbc:trino://host:8080/production?user=username"`
    - User: "show me viewzoo.example"
    - LLM: `--schema viewzoo.example`
    - Result: ❌ Error: "Connection is bound to catalog 'production'. Use simple schema name."
@@ -301,7 +318,7 @@ private void loadFromJdbc(DependencyAnalyzer analyzer, String jdbcUrl, String sc
 3. **CLI usage (no-catalog):**
    ```bash
    java -jar viewmapper.jar run \
-     --connection "jdbc:trino://user:pass@host:8080" \
+     --connection "jdbc:trino://host:8080?user=username" \
      --schema viewzoo.example \
      "Show me dependencies"
    ```
@@ -309,7 +326,7 @@ private void loadFromJdbc(DependencyAnalyzer analyzer, String jdbcUrl, String sc
 4. **CLI usage (catalog-bound):**
    ```bash
    java -jar viewmapper.jar run \
-     --connection "jdbc:trino://user:pass@host:8080/production" \
+     --connection "jdbc:trino://host:8080/production?user=username" \
      --schema analytics \
      "Show me dependencies"
    ```
