@@ -28,12 +28,12 @@ create or replace view example.c as select * from example.b
 create or replace view example.d as select * from example.b
 ```
 
-Even this simple example requires some careful reading to understand.
-As we start building more complex hierarchies, it becomes more difficult to track relationships between views.
-And because views in these kinds of hierarchies aren't related by primary or foreign keys, many ERD tools don't properly report these relationships. ☹️
+Even this simple example requires some careful reading to understand. As we start building more complex hierarchies, it becomes more difficult to track
+relationships between views. Traditional ERD tools focus on foreign key relationships between tables, but because view hierarchies don't use foreign
+keys, these SQL-level dependencies aren't visualized by most ERD tools. ☹️
 
-ViewMapper fully understands relationships between Trino views, because it uses the Trino SQL parser to create an accurate graph of view relationships, even when using
-multiple JOIN, UNION, or WITH clauses in your view definitions. If your schema is small, like the example above, it can generate a diagram in one shot.
+ViewMapper solves this by using the Trino SQL parser to extract and map these view-to-view dependencies, creating an accurate graph of relationships even for
+views with multiple JOIN, UNION, or WITH clauses. If your schema is small, like the example above, it can generate a diagram in one shot.
 > Please generate a mermaid diagram file for the example schema
 ```mermaid
 graph TD
