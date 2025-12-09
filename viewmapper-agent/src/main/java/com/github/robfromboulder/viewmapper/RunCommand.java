@@ -50,10 +50,10 @@ public class RunCommand implements Callable<Integer> {
                 loadFromFile(analyzer, datasetName);
             } else if (connection.startsWith("jdbc:trino://")) {
                 if (schema == null || schema.trim().isEmpty())
-                    throw new IllegalArgumentException("--schema parameter is required for JDBC connections\nExamples:\n  --connection jdbc:trino://host:8080/catalog?user=youruser --schema analytics\n  --connection jdbc:trino://host:8080?user=youruser --schema catalog.analytics");
+                    throw new IllegalArgumentException("--schema parameter is required for JDBC connections\nExamples:\n  --connection jdbc:trino://host:8080?user=youruser --schema viewzoo.analytics (recommended: multi-catalog)\n  --connection jdbc:trino://host:8080/catalog?user=youruser --schema analytics (advanced: single catalog)");
                 loadFromJdbc(analyzer, connection, schema);
             } else {
-                throw new IllegalArgumentException("Invalid connection string. Must start with 'test://' or 'jdbc:trino://'\nExamples:\n  --connection test://simple_ecommerce\n  --connection jdbc:trino://host:8080/catalog?user=youruser --schema analytics\n  --connection jdbc:trino://host:8080?user=youruser --schema catalog.analytics");
+                throw new IllegalArgumentException("Invalid connection string. Must start with 'test://' or 'jdbc:trino://'\nExamples:\n  --connection test://simple_ecommerce\n  --connection jdbc:trino://host:8080?user=youruser --schema viewzoo.analytics (recommended: multi-catalog)\n  --connection jdbc:trino://host:8080/catalog?user=youruser --schema analytics (advanced: single catalog)");
             }
 
             // call agent with dependency analyzer and user prompt
@@ -130,9 +130,9 @@ public class RunCommand implements Callable<Integer> {
                 }
                 catalog = urlCatalog;
                 schema = schemaName;
-            } else {  // no catalog in url, so require qualified schema to proceed
+            } else {  // no catalog in url (multi-catalog mode), so require qualified schema to proceed
                 if (!schemaName.contains(".")) {
-                    throw new IllegalArgumentException("Connection URL doesn't specify catalog. " +
+                    throw new IllegalArgumentException("Multi-catalog connection allows exploring all catalogs. " +
                             "Use qualified schema: --schema catalog.schema\n" +
                             "Example: --schema viewzoo.example"
                     );

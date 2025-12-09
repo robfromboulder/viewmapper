@@ -16,11 +16,12 @@
 ## Completed Features
 
 ### JDBC Connectivity ✅
-- Live Trino connections via JDBC with optional catalog in URL
+- Live Trino connections via JDBC with multi-catalog exploration recommended
 - Single-query schema introspection from `information_schema.views`
 - Elegant catalog handling:
-  - URL with catalog (`jdbc:trino://host:port/catalog?user=username`) → schema parameter must be simple name (catalog-bound)
-  - URL without catalog (`jdbc:trino://host:port?user=username`) → schema parameter must be `catalog.schema` format
+  - **Recommended:** URL without catalog (`jdbc:trino://host:port?user=username`) → schema parameter must be `catalog.schema` format (multi-catalog exploration)
+  - **Advanced:** URL with catalog (`jdbc:trino://host:port/catalog?user=username`) → schema parameter must be simple name (catalog-bound for enterprise/regulatory use)
+- Read-only design makes multi-catalog exploration safe
 - No connection pooling (stateless CLI design)
 
 ## Future Enhancements
@@ -137,11 +138,11 @@ java -jar viewmapper-478.jar run --connection <string> [options] <prompt>
 - `<prompt>` (required) - Natural language question about schema
 - `--connection <string>` (required) - Connection string
   - `test://<dataset_name>` - Load from embedded JSON
-  - `jdbc:trino://host:port/catalog?user=username` - Live Trino connection with catalog
-  - `jdbc:trino://host:port?user=username` - Live Trino connection without catalog
+  - `jdbc:trino://host:port?user=username` - Live Trino connection (recommended: multi-catalog)
+  - `jdbc:trino://host:port/catalog?user=username` - Live Trino connection (advanced: single catalog)
 - `--schema <name>` - Trino schema name (required for JDBC connections)
-  - Simple name if URL has catalog: `--schema analytics`
-  - Qualified name if URL has no catalog: `--schema viewzoo.example`
+  - **Multi-catalog (recommended):** Qualified name `--schema viewzoo.example`
+  - **Single-catalog (advanced):** Simple name `--schema analytics`
 - `--output <format>` - Output format: `text` (default) or `json`
 - `--verbose` - Show debugging information
 
@@ -156,25 +157,25 @@ java -jar viewmapper-478.jar run --connection <string> [options] <prompt>
 # Test dataset
 java -jar target/viewmapper-478.jar run --connection "test://simple_ecommerce" "Show me the full dependency diagram"
 
-# JDBC with catalog in URL
-java -jar target/viewmapper-478.jar run \
-  --connection "jdbc:trino://localhost:8080/production?user=youruser" \
-  --schema analytics \
-  "What are the high-impact views?"
-
-# JDBC without catalog in URL
+# JDBC multi-catalog (recommended)
 java -jar target/viewmapper-478.jar run \
   --connection "jdbc:trino://localhost:8080?user=youruser" \
   --schema viewzoo.example \
   "Show me the dependency diagram"
 
+# JDBC single-catalog (advanced - enterprise/regulatory)
+java -jar target/viewmapper-478.jar run \
+  --connection "jdbc:trino://localhost:8080/production?user=youruser" \
+  --schema analytics \
+  "What are the high-impact views?"
+
 # JSON output
 java -jar target/viewmapper-478.jar run --connection "test://moderate_analytics" --output json "Analyze this schema"
 
-# Verbose debugging
+# Verbose debugging with multi-catalog
 java -jar target/viewmapper-478.jar run \
-  --connection "jdbc:trino://localhost:8080/prod?user=youruser" \
-  --schema analytics \
+  --connection "jdbc:trino://localhost:8080?user=youruser" \
+  --schema viewzoo.analytics \
   --verbose "What are the leaf views?"
 ```
 
