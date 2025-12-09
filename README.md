@@ -49,7 +49,7 @@ graph TD
 ```
 
 For larger schemas, you can ask ViewMapper to focus on relationships around a specific view.
-> Please generate a mermaid diagram file for the viewzoo.example schema, focusing on customer_360, using short view names for readability
+> Please generate a mermaid diagram file for the viewzoo.example schema, focusing on customer_360, and short view names for better readability
 ```mermaid
 graph TB
     node1["customer_segments"]
@@ -130,7 +130,7 @@ and will suggest views to focus upon instead:
   }
 ```
 
-**When limiting discovery to a specific Trino catalog (for enterprise or regulated environments):**
+**For limiting discovery to a specific Trino catalog (in enterprise or regulated environments):**
 
 ```json
   "mcpServers": {
@@ -164,15 +164,15 @@ and will suggest views to focus upon instead:
 > [!IMPORTANT]
 > When configuring `VIEWMAPPER_CONNECTION`, follow these guidelines:
 > - The **user** parameter is always required even if user authentication is not configured in Trino
-> - For **multi-catalog** connections: use `jdbc:trino://hostname:port?user=username` and fully-qualified names in prompts
-> - For **single-catalog** connections: use `jdbc:trino://hostname:port/catalog?user=username` and simple schema names in prompts
-> - Use `host.docker.internal` instead of `localhost` for containerized MCP servers to connect to Trino running on a host port
+> - For **multi-catalog** connections: use `jdbc:trino://hostname:port?user=username` and then use fully-qualified names in prompts
+> - For **single-catalog** connections: use `jdbc:trino://hostname:port/catalog?user=username` and then use simple schema names in prompts
+> - Use `host.docker.internal` instead of `localhost` to connect to Trino running on a host port
 
 ### 4. Restart Claude Desktop or click **Developer | Reload MCP Configuration**
 
 > [!TIP]
 > A single named MCP server container (with a unique name) will be launched by Claude Desktop, and terminated when Claude Desktop shuts down.
-> You should not ever have to start or stop the MCP server manually.
+> You should never have to start or stop the MCP server manually.
 
 ### 5. Verify the MCP server is running properly
 
