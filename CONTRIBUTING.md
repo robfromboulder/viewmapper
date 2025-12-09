@@ -190,6 +190,43 @@ The release script will:
 - Push to `robfromboulder/viewmapper-mcp-server:478a`
 - Create and push git tag `v478a`
 
+## Documentation Standards
+
+### No Line Number References in Documentation
+
+**Policy:** Documentation files (ARCHITECTURE.md, CLAUDE.md, README.md, CONTRIBUTING.md, TESTING.md) must NOT reference specific line numbers in source files.
+
+**Rationale:** Line numbers change frequently as code evolves, causing documentation to drift out of sync and creating maintenance burden.
+
+**Instead of line numbers, use:**
+- Class names: `RunCommand`
+- Method names with C++ style notation: `RunCommand.java::loadFromJdbc()`
+- Field names: `DependencyAnalyzer.graph`
+- Section descriptions: "in the schema loading logic"
+- Function signatures: `build_prompt_with_history(history, current_query)`
+
+**Examples:**
+
+❌ **Bad:**
+```
+See RunCommand.java:125-172 for implementation
+The timeout is set in mcp_server.py:182
+Update the schema in list_tools() (mcp_server.py:104-127)
+```
+
+✅ **Good:**
+```
+See RunCommand.java::loadFromJdbc() for implementation
+The timeout is set in the call_tool() method via subprocess.run(timeout=60)
+Update the schema in list_tools()
+```
+
+**When Line References Are Acceptable:**
+- Error messages when reporting bugs/issues
+- Commit messages (temporary references that don't live in docs)
+- Code comments within source files
+- Test failure messages
+
 ## Code Conventions
 
 ### Java (viewmapper-agent)
