@@ -50,7 +50,7 @@ graph TB
 ```
 
 For larger schemas, you can ask ViewMapper to focus on relationships around a specific view.
-> Please generate a mermaid diagram file for the viewzoo.example schema, focusing on customer_360, and use short view names for better readability
+> Please generate a mermaid diagram file for the viewzoo.ecommerce schema, focusing on customer_360, and use short view names for better readability
 ```mermaid
 graph TB
     node1["customer_segments"]
