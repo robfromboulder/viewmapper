@@ -49,7 +49,7 @@ graph TD
 ```
 
 For larger schemas, you can ask ViewMapper to focus on relationships around a specific view.
-> Please generate a mermaid diagram file for the viewzoo.example schema, focusing on customer_360, and short view names for better readability
+> Please generate a mermaid diagram file for the viewzoo.example schema, focusing on customer_360, and use short view names for better readability
 ```mermaid
 graph TB
     node1["customer_segments"]
@@ -164,8 +164,8 @@ and will suggest views to focus upon instead:
 > [!IMPORTANT]
 > When configuring `VIEWMAPPER_CONNECTION`, follow these guidelines:
 > - The **user** parameter is always required even if user authentication is not configured in Trino
-> - For **multi-catalog** connections: use `jdbc:trino://hostname:port?user=username` and then use fully-qualified names in prompts
-> - For **single-catalog** connections: use `jdbc:trino://hostname:port/catalog?user=username` and then use simple schema names in prompts
+> - For **multi-catalog** connections: use `jdbc:trino://hostname:port?user=username` and then use fully-qualified names in prompts (`catalog.schema.view`)
+> - For **single-catalog** connections: use `jdbc:trino://hostname:port/catalog?user=username` and then use simple schema names in prompts (`schema.view`)
 > - Use `host.docker.internal` instead of `localhost` to connect to Trino running on a host port
 
 ### 4. Restart Claude Desktop or click **Developer | Reload MCP Configuration**
