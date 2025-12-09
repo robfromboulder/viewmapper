@@ -225,17 +225,18 @@ class DependencyVisitor extends DefaultTraversalVisitor<Void, Void> {
 
 **Connection URL Format:**
 ```
-jdbc:trino://host:port/catalog?user=username    # With catalog
-jdbc:trino://host:port?user=username            # Without catalog
+jdbc:trino://host:port?user=username            # Recommended: Multi-catalog
+jdbc:trino://host:port/catalog?user=username    # Advanced: Single catalog
 ```
 
-**Design Decision: Elegant Catalog Handling**
-- **URL with catalog:** Schema parameter must be simple name (e.g., `analytics`)
-  - Conversation is "bound" to that catalog
-  - Prevents accidentally querying other catalogs
-- **URL without catalog:** Schema parameter must be qualified (e.g., `viewzoo.example`)
+**Design Decision: Multi-Catalog First, Elegant Catalog Handling**
+- **Recommended - URL without catalog:** Schema parameter must be qualified (e.g., `viewzoo.example`)
   - Enables multi-catalog exploration in single session
+  - Reduces configuration complexity ("which catalog was that?")
   - LLM extracts catalog and schema from user query
+- **Advanced - URL with catalog:** Schema parameter must be simple name (e.g., `analytics`)
+  - Conversation is "bound" to that catalog for regulatory/compliance requirements
+  - Prevents accidentally querying other catalogs in enterprise environments
 
 **Key Implementation (RunCommand.java:118-164):**
 ```java
@@ -300,22 +301,13 @@ private void loadFromJdbc(DependencyAnalyzer analyzer, String jdbcUrl, String sc
 
 **Example Flows:**
 
-1. **No-catalog URL (most common for MCP):**
-   - Config: `TRINO_CONNECTION="jdbc:trino://host:8080?user=username"`
+1. **Multi-catalog URL (recommended for MCP):**
+   - Config: `VIEWMAPPER_CONNECTION="jdbc:trino://host:8080?user=username"`
    - User: "show me viewzoo.example"
    - LLM: `--schema viewzoo.example`
    - Result: ✅ Works! Extracts catalog=viewzoo, schema=example
 
-2. **Catalog-bound URL (team-specific):**
-   - Config: `TRINO_CONNECTION="jdbc:trino://host:8080/production?user=username"`
-   - User: "show me viewzoo.example"
-   - LLM: `--schema viewzoo.example`
-   - Result: ❌ Error: "Connection is bound to catalog 'production'. Use simple schema name."
-   - User adjusts: "show me analytics"
-   - LLM: `--schema analytics`
-   - Result: ✅ Works! Uses catalog=production, schema=analytics
-
-3. **CLI usage (no-catalog):**
+2. **CLI usage (multi-catalog, recommended):**
    ```bash
    java -jar viewmapper.jar run \
      --connection "jdbc:trino://host:8080?user=username" \
@@ -323,7 +315,16 @@ private void loadFromJdbc(DependencyAnalyzer analyzer, String jdbcUrl, String sc
      "Show me dependencies"
    ```
 
-4. **CLI usage (catalog-bound):**
+3. **Single-catalog URL (advanced - enterprise/regulatory):**
+   - Config: `VIEWMAPPER_CONNECTION="jdbc:trino://host:8080/production?user=username"`
+   - User: "show me viewzoo.example"
+   - LLM: `--schema viewzoo.example`
+   - Result: ❌ Error: "Connection is bound to catalog 'production'. Use simple schema name."
+   - User adjusts: "show me analytics"
+   - LLM: `--schema analytics`
+   - Result: ✅ Works! Uses catalog=production, schema=analytics
+
+4. **CLI usage (single-catalog, advanced):**
    ```bash
    java -jar viewmapper.jar run \
      --connection "jdbc:trino://host:8080/production?user=username" \
@@ -581,7 +582,24 @@ docker image rm -f viewmapper:478 && docker build --no-cache -t viewmapper:478 .
 
 ### Claude Desktop Configuration (Docker - Production)
 
-**For production use with published release:**
+**Recommended: Multi-catalog configuration with published release:**
+```json
+{
+  "mcpServers": {
+    "viewmapper-mcp-server": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "-e", "ANTHROPIC_API_KEY_FOR_VIEWMAPPER=sk-ant-...",
+        "-e", "VIEWMAPPER_CONNECTION=jdbc:trino://trino.example.com:8080?user=youruser",
+        "robfromboulder/viewmapper-mcp-server:478c"
+      ]
+    }
+  }
+}
+```
+
+**For testing with sample data with published release:**
 ```json
 {
   "mcpServers": {
@@ -738,7 +756,10 @@ pip install -e ".[dev]"  # install with dev dependencies (includes pytest)
    - "Progressive disclosure based on graph analysis"
 
 5. **How does JDBC catalog handling work?**
-   - "Elegant validation: URL with catalog = bound conversation, no catalog = multi-catalog exploration"
+   - "Multi-catalog by default: recommended for easier configuration and broader exploration"
+   - "Read-only tool makes multi-catalog exploration safe by design"
+   - "Single-catalog mode available for enterprise/regulatory requirements"
+   - "Elegant validation: URL format determines schema parameter expectations"
    - "Single SQL query using information_schema - efficient and simple"
    - "LLM guidance via MCP tool schema steers toward catalog.schema format"
    - "No over-engineering: let JDBC driver handle URL parsing, no connection manager classes"
