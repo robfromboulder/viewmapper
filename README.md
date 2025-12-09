@@ -164,8 +164,8 @@ and will suggest views to focus upon instead:
 > [!IMPORTANT]
 > When configuring `VIEWMAPPER_CONNECTION`, follow these guidelines:
 > - The **user** parameter is always required even if user authentication is not configured in Trino
-> - For **multi-catalog** connections: use `jdbc:trino://hostname:port?user=username` and then use fully-qualified names in prompts (`catalog.schema.view`)
-> - For **single-catalog** connections: use `jdbc:trino://hostname:port/catalog?user=username` and then use simple schema names in prompts (`schema.view`)
+> - For **multi-catalog** connections: use `jdbc:trino://hostname:port?user=username` and then use fully-qualified schema names in prompts (`catalog.schema`)
+> - For **single-catalog** connections: use `jdbc:trino://hostname:port/catalog?user=username` and then use simple schema names in prompts
 > - Use `host.docker.internal` instead of `localhost` to connect to Trino running on a host port
 
 ### 4. Restart Claude Desktop or click **Developer | Reload MCP Configuration**
