@@ -19,19 +19,19 @@
 - LLM instructed to use `catalog.schema` format (e.g., `viewzoo.example`)
 - Java CLI handles catalog validation and provides clear error messages
 
+### Portable Java Execution ✅
+- Uses system PATH to find Java executable
+- No hardcoded paths - works across different environments
+- Docker compatible
+
 ## Future Enhancements
 
-### Phase 1: Portable Java Execution (High Priority)
-- Replace hardcoded Java path with environment variable or PATH lookup
-- Support `JAVA_HOME` or `VIEWMAPPER_JAVA` configuration
-- Docker compatibility (remove hardcoded `/Users/robfromboulder/...`)
-
-### Phase 2: Multi-Session Context (Medium Priority)
+### Phase 1: Multi-Session Context (Medium Priority)
 - Extract session ID from MCP protocol
 - Isolate conversation histories per session
 - Prevent context bleeding across Claude Desktop sessions
 
-### Phase 3: Structured Context (Low Priority - Option B)
+### Phase 2: Structured Context (Low Priority - Option B)
 - Add `--context` parameter to Java CLI
 - Implement LangChain4j `ChatMemory` in agent
 - Pass JSON context instead of text-based prompt enhancement
@@ -136,7 +136,7 @@ pytest -v                              # All unit tests (mocked)
 
 ### Core Functions
 
-#### `build_prompt_with_history(history, current_query)` (mcp_server.py:56-97)
+#### `build_prompt_with_history(history, current_query)`
 
 Builds enhanced prompt with conversation context.
 
@@ -159,9 +159,7 @@ Builds enhanced prompt with conversation context.
 - Truncates assistant responses > 200 chars
 - Returns unchanged query if no history
 
-**Line References:** mcp_server.py:56-97
-
-#### `list_tools()` (mcp_server.py:100-128)
+#### `list_tools()`
 
 Registers MCP tool with schema definition.
 
@@ -169,9 +167,7 @@ Registers MCP tool with schema definition.
 - List with single tool: `explore_trino_views`
 - Input schema: `query` (string, required)
 
-**Line References:** mcp_server.py:100-128
-
-#### `call_tool(name, arguments)` (mcp_server.py:131-220)
+#### `call_tool(name, arguments)`
 
 Main tool handler - executes Java CLI and manages context.
 
@@ -190,8 +186,6 @@ Main tool handler - executes Java CLI and manages context.
 - File not found → `❌ Error: Java or JAR file not found...`
 - Other → `❌ Unexpected error: {str(e)}`
 
-**Line References:** mcp_server.py:131-220
-
 ### Context Management
 
 #### Session Storage
@@ -207,8 +201,8 @@ All Claude Desktop conversations share same history (context bleeding).
 #### History Window
 
 **Parameters (in `build_prompt_with_history`):**
-- `max_history_turns = 3` (line 81) - Keep last 3 turns (6 messages)
-- Truncation: 200 chars for assistant responses (line 89)
+- `max_history_turns = 3` - Keep last 3 turns (6 messages)
+- Truncation: 200 chars for assistant responses
 
 **Rationale:**
 - Prevents token limit exhaustion
@@ -228,18 +222,21 @@ java -jar $VIEWMAPPER_JAR \
   [--verbose]
 ```
 
-**Hardcoded Java Path (mcp_server.py:165):**
+**Java Executable Resolution:**
+- Uses `java` from system PATH
+- No hardcoded paths - portable across environments
+- Requires Java to be available in PATH or JAVA_HOME
+
+**Command Construction (in mcp_server.py):**
 ```python
 cmd = [
-    "/Users/robfromboulder/Tools/jdk-24.0.2+12/Contents/Home/bin/java",
+    "java",
     "-jar", VIEWMAPPER_JAR,
     "run", enhanced_prompt,
     "--connection", VIEWMAPPER_CONNECTION,
     "--output", "text"
 ]
 ```
-
-**TODO:** Replace with portable solution (see Future Enhancements)
 
 #### Environment Variables
 
@@ -253,7 +250,7 @@ cmd = [
 
 #### Timeout Handling
 
-- Default: 60 seconds (mcp_server.py:182)
+- Default: 60 seconds (in `call_tool()`)
 - On timeout: Returns user-friendly message suggesting simpler queries
 - No automatic retry
 
@@ -421,7 +418,7 @@ pytest -v
 
 ### Adding a New Tool Parameter
 
-1. **Update `inputSchema` in `list_tools()`** (mcp_server.py:104-127)
+1. **Update `inputSchema` in `list_tools()`**
    ```python
    "properties": {
        "query": {"type": "string", "description": "..."},
@@ -430,7 +427,7 @@ pytest -v
    "required": ["query", "new_param"]  # UPDATE
    ```
 
-2. **Extract parameter in `call_tool()`** (mcp_server.py:149-156)
+2. **Extract parameter in `call_tool()`**
    ```python
    query = arguments.get("query")
    new_param = arguments.get("new_param")  # ADD
@@ -442,7 +439,7 @@ pytest -v
        return [types.TextContent(...)]  # Error message
    ```
 
-4. **Pass to Java CLI** (mcp_server.py:165-174)
+4. **Pass to Java CLI** (in `call_tool()`)
    ```python
    cmd = [..., "--new-flag", new_param]
    ```
@@ -453,13 +450,13 @@ pytest -v
 
 **Change history limit:**
 ```python
-# In build_prompt_with_history() (line 81)
+# In build_prompt_with_history()
 max_history_turns = 5  # Currently 3
 ```
 
 **Change truncation length:**
 ```python
-# In build_prompt_with_history() (line 89)
+# In build_prompt_with_history()
 if msg["role"] == "assistant" and len(content) > 500:  # Currently 200
     content = content[:500] + "..."
 ```
@@ -571,20 +568,7 @@ Simplicity and backward compatibility vs. cleaner architecture.
 
 ## Known Limitations
 
-### 1. Hardcoded Java Path (mcp_server.py:165)
-
-**Impact:** Not portable across systems/users
-
-**Current:**
-```python
-cmd = ["/Users/robfromboulder/Tools/jdk-24.0.2+12/Contents/Home/bin/java", ...]
-```
-
-**Mitigation:** Document in README, add to Phase 1 enhancements
-
-**Line:** mcp_server.py:165, 171 (comment: "todo replace reference to 'robfromboulder' above when dockerizing")
-
-### 2. Single Session Context
+### 1. Single Session Context
 
 **Impact:** Context bleeds across multiple Claude Desktop sessions
 
@@ -592,30 +576,21 @@ cmd = ["/Users/robfromboulder/Tools/jdk-24.0.2+12/Contents/Home/bin/java", ...]
 
 **Mitigation:** Typically not an issue (single schema exploration), future enhancement
 
-### 3. Schema Parameter Handling
-
-**Note:** Schema parameter added to MCP tool schema but is optional
-
-**Behavior:**
-- If provided, passed to Java CLI via `--schema` parameter
-- LLM guided to use `catalog.schema` format in tool description
-- Java CLI validates and provides clear error messages for mismatched formats
-
-### 4. 60-Second Timeout
+### 2. 60-Second Timeout
 
 **Impact:** Large schemas may timeout on complex queries
 
-**Current:** Fixed 60-second timeout (mcp_server.py:182)
+**Current:** Fixed 60-second timeout (in `call_tool()`)
 
 **Mitigation:** Error message suggests simpler queries, no retry mechanism
 
-### 5. Python 3.14+ Required
+### 3. Python 3.14+ Required
 
 **Impact:** Older Python versions not supported
 
 **Current:** MCP SDK constraint
 
-**Mitigation:** Document in README, use pyenv for compatibility
+**Mitigation:** Document in README, use pyenv for compatibility, Python version provided by docker container anyway
 
 ---
 
@@ -703,7 +678,7 @@ Current question: Show me the diagram
 ```
 
 **Java agent expects:**
-- Single string prompt (ViewMapperAgent.java:133)
+- Single string prompt (ViewMapperAgent.java::chat())
 - No special format required
 
 ✅ **Compatible** - Agent processes any text prompt
@@ -722,7 +697,7 @@ Current question: Show me the diagram
 
 ### Agent Behavior
 
-**System prompt (ViewMapperAgent.java:86-123):**
+**System prompt (in ViewMapperAgent.java Assistant interface):**
 1. Always calls `analyzeSchema` first
 2. Decides full diagram vs entry points based on complexity
 3. Generates Mermaid when appropriate
@@ -826,7 +801,7 @@ When modifying this module, verify:
 - [ ] History respects 3-turn limit and truncation
 - [ ] Java CLI command structure matches RunCommand expectations
 - [ ] Claude Desktop config uses absolute paths
-- [ ] No hardcoded paths (except TODO on line 165)
+- [ ] No hardcoded paths - Java resolved via system PATH
 - [ ] Type hints present on all functions
 - [ ] Docstrings updated for changed functions
 
