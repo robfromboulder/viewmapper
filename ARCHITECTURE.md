@@ -11,6 +11,19 @@
 - Enables progressive disclosure through iterative exploration
 - Generates focused, navigable dependency diagrams
 
+## Documentation Standards
+
+### Source Code References
+
+When referencing implementation details in documentation:
+- Use class and method names with C++ style notation, not line numbers
+- Example: `RunCommand.java::loadFromJdbc()` not `RunCommand.java:125-172`
+- Example: `ViewMapperAgent.java::chat()` not `ViewMapperAgent.java:133`
+- Link to concepts and components, not specific line locations
+- See CONTRIBUTING.md for complete documentation standards
+
+**Rationale:** Line numbers change frequently as code evolves, causing documentation to drift out of sync. Using class/method references keeps documentation accurate and maintainable.
+
 ## Critical Design Decisions
 
 ### 1. Java CLI + Python MCP Wrapper (Not Microservice)
@@ -150,12 +163,18 @@ viewmapper/
 │       └── agent/
 │           ├── ViewMapperAgent.java           # LangChain4j orchestration
 │           ├── AnthropicConfig.java           # API configuration
+│           ├── discovery/
+│           │   ├── DiscoveryProvider.java     # Interface for catalog/schema discovery
+│           │   ├── JdbcDiscoveryProvider.java # Live Trino discovery
+│           │   └── TestDatasetDiscoveryProvider.java # Test dataset discovery
 │           ├── types/
 │           │   ├── ComplexityLevel.java       # SIMPLE/MODERATE/COMPLEX/VERY_COMPLEX
 │           │   ├── SchemaComplexity.java      # Complexity analysis result
 │           │   ├── EntryPointSuggestion.java  # Entry point recommendations
 │           │   └── SubgraphResult.java        # Subgraph extraction result
 │           └── tools/
+│               ├── ListCatalogsToolExecutor.java    # Discovery: list catalogs
+│               ├── ListSchemasToolExecutor.java     # Discovery: list schemas
 │               ├── AnalyzeSchemaToolExecutor.java
 │               ├── SuggestEntryPointsToolExecutor.java
 │               ├── ExtractSubgraphToolExecutor.java
@@ -175,7 +194,8 @@ viewmapper/
 - ✅ Java CLI with Picocli: Fully implemented
 - ✅ SQL Parser (Trino 478): Fully implemented with comprehensive tests
 - ✅ Graph Analysis (JGraphT): Fully implemented (high-impact, leaf, centrality, subgraph)
-- ✅ LangChain4j Agent: Fully implemented with 4 tool executors
+- ✅ LangChain4j Agent: Fully implemented with 6 tool executors (4 analysis + 2 discovery)
+- ✅ Catalog & Schema Discovery: Essential for multi-catalog exploration (recommended default)
 - ✅ Dataset Loading: JSON embedded in JAR with test:// connection URLs
 - ✅ Trino JDBC Connection: Fully implemented with elegant catalog handling
 - ✅ Python MCP Wrapper: Fully implemented with context management
@@ -238,7 +258,7 @@ jdbc:trino://host:port/catalog?user=username    # Advanced: Single catalog
   - Conversation is "bound" to that catalog for regulatory/compliance requirements
   - Prevents accidentally querying other catalogs in enterprise environments
 
-**Key Implementation (RunCommand.java:118-164):**
+**Key Implementation (RunCommand.java::loadFromJdbc()):**
 ```java
 private void loadFromJdbc(DependencyAnalyzer analyzer, String jdbcUrl, String schemaName) throws Exception {
     try (Connection conn = DriverManager.getConnection(jdbcUrl)) {
@@ -332,7 +352,71 @@ private void loadFromJdbc(DependencyAnalyzer analyzer, String jdbcUrl, String sc
      "Show me dependencies"
    ```
 
-### 3. DependencyAnalyzer (Java)
+### 3. Catalog & Schema Discovery (Java)
+
+**Purpose:** Enable natural database exploration without requiring prior knowledge of catalog/schema names.
+
+**Design Decision: Discovery is Essential for Multi-Catalog (Recommended Default)**
+
+With ViewMapper recommending multi-catalog connections by default (`jdbc:trino://host:port?user=username`), discovery tools became **essential rather than optional**. Users connecting without a catalog in the URL need a way to find what's available before analysis can begin.
+
+**Key Implementation:**
+
+**DiscoveryProvider Interface:**
+```java
+public interface DiscoveryProvider {
+    List<String> listCatalogs();
+    List<String> listSchemas(String catalog);
+}
+```
+
+**Two Implementations:**
+
+1. **JdbcDiscoveryProvider** - Live Trino metadata queries
+   - `listCatalogs()` → Executes `SHOW CATALOGS`
+   - `listSchemas(catalog)` → Executes `SHOW SCHEMAS FROM catalog`
+   - Validates catalog parameter against bound catalog (if URL specifies one)
+   - Handles both multi-catalog and single-catalog connection modes
+
+2. **TestDatasetDiscoveryProvider** - Synthetic catalog structure
+   - `listCatalogs()` → Returns `["test"]`
+   - `listSchemas("test")` → Returns dataset names (`simple_ecommerce`, `moderate_analytics`, etc.)
+   - Makes test dataset exploration identical to JDBC workflow
+
+**Agent Tools:**
+- `ListCatalogsToolExecutor` - Exposes discovery to LLM
+- `ListSchemasToolExecutor` - Exposes schema listing to LLM
+
+**Natural Discovery Flow:**
+```
+User: "What catalogs are available?"
+Agent: [Calls listCatalogs] → ["viewzoo", "production", "staging"]
+Agent: "I found 3 catalogs: viewzoo, production, staging. Which interests you?"
+
+User: "viewzoo"
+Agent: [Calls listSchemas("viewzoo")] → ["example", "test", "dev"]
+Agent: "The viewzoo catalog has 3 schemas: example, test, dev. Which should I analyze?"
+
+User: "example"
+Agent: [Calls analyzeSchema("viewzoo.example")]
+...continues with normal exploration...
+```
+
+**Design Rationale:**
+- **Unified Interface:** Test datasets and JDBC behave identically for discovery
+- **No Java CLI Changes:** Discovery tools added, but existing analysis flow unchanged
+- **Essential for UX:** Multi-catalog users would be stuck without discovery ("What schema do I analyze?")
+- **Read-Only Safe:** Discovery queries have no side effects, safe to explore all catalogs
+
+**Test Dataset Mapping:**
+- Connection: `test://simple_ecommerce`
+- Virtual catalog: `test`
+- Virtual schema: `simple_ecommerce`
+- Full identifier: `test.simple_ecommerce`
+
+Users don't need to know they're using test data - the workflow is identical!
+
+### 4. DependencyAnalyzer (Java)
 
 **Purpose:** Build and analyze dependency graph.
 
@@ -359,9 +443,9 @@ public class DependencyAnalyzer {
 }
 ```
 
-### 4. ViewMapperAgent (Java)
+### 5. ViewMapperAgent (Java)
 
-**Purpose:** LangChain4j-powered agent orchestration with embedded system prompt.
+**Purpose:** LangChain4j-powered agent orchestration with embedded system prompt and 6 specialized tools.
 
 **Key Implementation:**
 ```java
@@ -370,25 +454,35 @@ public class ViewMapperAgent {
 
     // Default constructor (uses environment config)
     public ViewMapperAgent(DependencyAnalyzer analyzer) {
-        this(analyzer, AnthropicConfig.fromEnvironment());
+        this(analyzer, null, AnthropicConfig.fromEnvironment());
+    }
+
+    // With discovery provider
+    public ViewMapperAgent(DependencyAnalyzer analyzer, DiscoveryProvider provider) {
+        this(analyzer, provider, AnthropicConfig.fromEnvironment());
     }
 
     // Explicit config constructor
-    public ViewMapperAgent(DependencyAnalyzer analyzer, AnthropicConfig config) {
+    public ViewMapperAgent(DependencyAnalyzer analyzer, DiscoveryProvider provider, AnthropicConfig config) {
         ChatLanguageModel model = AnthropicChatModel.builder()
             .apiKey(config.getApiKey())
             .modelName(config.getModelName())
             .timeout(config.getTimeout())
             .build();
 
+        List<Object> tools = new ArrayList<>();
+        if (provider != null) {
+            tools.add(new ListCatalogsToolExecutor(provider));
+            tools.add(new ListSchemasToolExecutor(provider));
+        }
+        tools.add(new AnalyzeSchemaToolExecutor(analyzer));
+        tools.add(new SuggestEntryPointsToolExecutor(analyzer));
+        tools.add(new ExtractSubgraphToolExecutor(analyzer));
+        tools.add(new GenerateMermaidToolExecutor(analyzer));
+
         this.assistant = AiServices.builder(Assistant.class)
             .chatLanguageModel(model)
-            .tools(
-                new AnalyzeSchemaToolExecutor(analyzer),
-                new SuggestEntryPointsToolExecutor(analyzer),
-                new ExtractSubgraphToolExecutor(analyzer),
-                new GenerateMermaidToolExecutor(analyzer)
-            )
+            .tools(tools.toArray())
             .build();
     }
 
@@ -407,13 +501,27 @@ public class ViewMapperAgent {
 
 **Design Note:** Removed SchemaExplorationService layer - RunCommand now uses ViewMapperAgent directly.
 
-### 5. System Prompt Strategy
+### 6. System Prompt Strategy
 
-**Purpose:** Provide reasoning capabilities to guide exploration.
+**Purpose:** Provide reasoning capabilities to guide exploration, including catalog/schema discovery.
 
 **Agent Prompt Strategy:**
 ```
 You are a database schema expert helping users explore complex dependency graphs.
+
+DISCOVERY STRATEGY (MULTI-CATALOG FIRST):
+1. IMPORTANT: Most users connect with multi-catalog URLs (no catalog specified)
+2. If user asks "what catalogs" or "what schemas", use discovery tools immediately
+3. If user asks vague questions like "explore database" or "what's here", proactively offer discovery
+4. After showing catalogs/schemas, guide user to select one for analysis
+5. Once schema selected, use analyzeSchema to start exploration
+6. Discovery tools are fast (<500ms) - use them proactively to help users orient
+7. For multi-catalog connections, guide: catalogs → schemas → analysis
+8. For single-catalog connections, guide: schemas → analysis
+
+DISCOVERY TOOLS (if available):
+- listCatalogs: Show available catalogs (no parameters) - use this FIRST for multi-catalog connections
+- listSchemas: Show schemas in a catalog (requires catalog parameter unless connection is catalog-bound)
 
 REASONING STRATEGY:
 1. Always assess complexity first (call AnalyzeSchema)
@@ -425,13 +533,15 @@ REASONING STRATEGY:
 7. Maintain context across conversation
 
 Available tools:
+- listCatalogs: List available catalogs (discovery)
+- listSchemas: List schemas in a catalog (discovery)
 - AnalyzeSchema: Count views, assess complexity
 - SuggestEntryPoints: Find high-impact/leaf/hub views
 - ExtractSubgraph: Get focused dependency graph
 - GenerateMermaid: Create diagram from subgraph
 ```
 
-### 6. Python MCP Wrapper
+### 7. Python MCP Wrapper
 
 **Purpose:** Handle MCP protocol, delegate to Java CLI, manage conversation context.
 
