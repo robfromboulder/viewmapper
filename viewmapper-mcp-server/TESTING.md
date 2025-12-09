@@ -126,6 +126,25 @@ The test suite uses mocked subprocess calls to avoid requiring:
 
 Try these queries in Claude Desktop:
 
+**Catalog Discovery:**
+```
+What catalogs are available?
+```
+
+**Schema Discovery:**
+```
+What schemas are in the test catalog?
+```
+
+**Complete Discovery Flow:**
+```
+First: What catalogs can I explore?
+
+Then: Show me the schemas in test.
+
+Then: Analyze the simple_ecommerce schema.
+```
+
 **Simple Schema:**
 ```
 Show me the full dependency diagram

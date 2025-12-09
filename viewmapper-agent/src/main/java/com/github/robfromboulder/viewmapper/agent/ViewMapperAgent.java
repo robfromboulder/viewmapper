@@ -2,9 +2,12 @@
 
 package com.github.robfromboulder.viewmapper.agent;
 
+import com.github.robfromboulder.viewmapper.agent.discovery.DiscoveryProvider;
 import com.github.robfromboulder.viewmapper.agent.tools.AnalyzeSchemaToolExecutor;
 import com.github.robfromboulder.viewmapper.agent.tools.ExtractSubgraphToolExecutor;
 import com.github.robfromboulder.viewmapper.agent.tools.GenerateMermaidToolExecutor;
+import com.github.robfromboulder.viewmapper.agent.tools.ListCatalogsToolExecutor;
+import com.github.robfromboulder.viewmapper.agent.tools.ListSchemasToolExecutor;
 import com.github.robfromboulder.viewmapper.agent.tools.SuggestEntryPointsToolExecutor;
 import com.github.robfromboulder.viewmapper.parser.DependencyAnalyzer;
 import dev.langchain4j.model.anthropic.AnthropicChatModel;
@@ -12,6 +15,8 @@ import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.service.SystemMessage;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -29,7 +34,17 @@ public class ViewMapperAgent {
      * @param analyzer Dependency analyzer with loaded schema
      */
     public ViewMapperAgent(DependencyAnalyzer analyzer) {
-        this(analyzer, AnthropicConfig.fromEnvironment());
+        this(analyzer, null, AnthropicConfig.fromEnvironment());
+    }
+
+    /**
+     * Creates a ViewMapperAgent with discovery tools enabled.
+     *
+     * @param analyzer Dependency analyzer with loaded schema
+     * @param provider Provider for catalog/schema discovery (null disables discovery tools)
+     */
+    public ViewMapperAgent(DependencyAnalyzer analyzer, DiscoveryProvider provider) {
+        this(analyzer, provider, AnthropicConfig.fromEnvironment());
     }
 
     /**
@@ -37,10 +52,11 @@ public class ViewMapperAgent {
      * <p>
      * Primarily for testing or when overriding environment-based configuration.
      *
-     * @param config   Configuration for Anthropic API
      * @param analyzer Dependency analyzer with loaded schema
+     * @param provider Provider for catalog/schema discovery (null disables discovery tools)
+     * @param config   Configuration for Anthropic API
      */
-    public ViewMapperAgent(DependencyAnalyzer analyzer, AnthropicConfig config) {
+    public ViewMapperAgent(DependencyAnalyzer analyzer, DiscoveryProvider provider, AnthropicConfig config) {
         Objects.requireNonNull(config, "Config cannot be null");
         Objects.requireNonNull(analyzer, "Analyzer cannot be null");
 
@@ -50,32 +66,43 @@ public class ViewMapperAgent {
                 .timeout(config.getTimeout())
                 .build();
 
+        List<Object> tools = new ArrayList<>();
+        if (provider != null) {
+            tools.add(new ListCatalogsToolExecutor(provider));
+            tools.add(new ListSchemasToolExecutor(provider));
+        }
+        tools.add(new AnalyzeSchemaToolExecutor(analyzer));
+        tools.add(new SuggestEntryPointsToolExecutor(analyzer));
+        tools.add(new ExtractSubgraphToolExecutor(analyzer));
+        tools.add(new GenerateMermaidToolExecutor(analyzer));
+
         this.assistant = AiServices.builder(Assistant.class)
                 .chatLanguageModel(model)
-                .tools(
-                        new AnalyzeSchemaToolExecutor(analyzer),
-                        new SuggestEntryPointsToolExecutor(analyzer),
-                        new ExtractSubgraphToolExecutor(analyzer),
-                        new GenerateMermaidToolExecutor(analyzer)
-                )
+                .tools(tools.toArray())
                 .build();
     }
 
     /**
      * Constructor for testing with a custom ChatLanguageModel.
      *
-     * @param model    Custom chat language model (e.g., mock for testing)
      * @param analyzer Dependency analyzer with loaded schema
+     * @param provider Provider for catalog/schema discovery (null disables discovery tools)
+     * @param model    Custom chat language model (e.g., mock for testing)
      */
-    ViewMapperAgent(DependencyAnalyzer analyzer, ChatLanguageModel model) {
+    ViewMapperAgent(DependencyAnalyzer analyzer, DiscoveryProvider provider, ChatLanguageModel model) {
+        List<Object> tools = new ArrayList<>();
+        if (provider != null) {
+            tools.add(new ListCatalogsToolExecutor(provider));
+            tools.add(new ListSchemasToolExecutor(provider));
+        }
+        tools.add(new AnalyzeSchemaToolExecutor(analyzer));
+        tools.add(new SuggestEntryPointsToolExecutor(analyzer));
+        tools.add(new ExtractSubgraphToolExecutor(analyzer));
+        tools.add(new GenerateMermaidToolExecutor(analyzer));
+
         this.assistant = AiServices.builder(Assistant.class)
                 .chatLanguageModel(model)
-                .tools(
-                        new AnalyzeSchemaToolExecutor(analyzer),
-                        new SuggestEntryPointsToolExecutor(analyzer),
-                        new ExtractSubgraphToolExecutor(analyzer),
-                        new GenerateMermaidToolExecutor(analyzer)
-                )
+                .tools(tools.toArray())
                 .build();
     }
 
@@ -88,6 +115,25 @@ public class ViewMapperAgent {
                 
                 CRITICAL: You MUST use the provided tools to analyze schemas and generate diagrams.
                 NEVER describe or explain diagrams without actually generating them using tools.
+                
+                DISCOVERY STRATEGY (MULTI-CATALOG FIRST):
+                1. IMPORTANT: Most users connect with multi-catalog URLs (no catalog specified)
+                2. If user asks "what catalogs" or "what schemas", use discovery tools immediately
+                3. If user asks vague questions like "explore database" or "what's here", proactively offer discovery
+                4. After showing catalogs/schemas, guide user to select one for analysis
+                5. Once schema selected, use analyzeSchema to start exploration
+                6. Discovery tools are fast (<500ms) - use them proactively to help users orient
+                7. For multi-catalog connections, guide: catalogs → schemas → analysis
+                8. For single-catalog connections, guide: schemas → analysis
+                
+                DISCOVERY TOOLS (if available):
+                - listCatalogs: Show available catalogs (no parameters) - use this FIRST for multi-catalog connections
+                - listSchemas: Show schemas in a catalog (requires catalog parameter unless connection is catalog-bound)
+                
+                MULTI-CATALOG AWARENESS:
+                - Multi-catalog is the recommended default configuration
+                - Read-only tool makes exploring all catalogs safe
+                - Encourage users to explore multiple catalogs naturally
                 
                 MANDATORY WORKFLOW:
                 1. ALWAYS call analyzeSchema first (required for every request)

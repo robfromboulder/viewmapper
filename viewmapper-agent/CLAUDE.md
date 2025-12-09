@@ -8,9 +8,10 @@
 - Native Trino SQL parser for accurate dependency extraction
 - Directed dependency graphs with JGraphT algorithms
 - LLM agent with Claude via LangChain4j
-- 4 specialized tools for progressive schema exploration
+- 6 specialized tools: 2 discovery + 4 analysis for progressive schema exploration
+- Catalog & schema discovery essential for multi-catalog connections (recommended default)
 - CLI tool with 4 test datasets (11-154 views)
-- Comprehensive test suite: 18 test files, all passing
+- Comprehensive test suite: 21 test files, 202 tests passing
 - Embedded JAR resources (no external file dependencies)
 
 ## Completed Features
@@ -23,6 +24,16 @@
   - **Advanced:** URL with catalog (`jdbc:trino://host:port/catalog?user=username`) → schema parameter must be simple name (catalog-bound for enterprise/regulatory use)
 - Read-only design makes multi-catalog exploration safe
 - No connection pooling (stateless CLI design)
+
+### Catalog & Schema Discovery ✅
+- Natural database exploration workflow without prior knowledge of catalog/schema names
+- Two new LLM tools: `listCatalogs` and `listSchemas`
+- **Essential for multi-catalog connections (recommended default)** - users need discovery to find what's available
+- Unified `DiscoveryProvider` interface with two implementations:
+  - `JdbcDiscoveryProvider` - Executes `SHOW CATALOGS` and `SHOW SCHEMAS FROM catalog` against live Trino
+  - `TestDatasetDiscoveryProvider` - Returns synthetic "test" catalog with datasets as schemas
+- Enables conversations like: "What catalogs?" → "What schemas in viewzoo?" → "Analyze viewzoo.example"
+- Test datasets presented as schemas within "test" catalog for consistent UX across test and production
 
 ## Future Enhancements
 
@@ -54,10 +65,13 @@
 - CLI tool for interactive dependency mapping
 
 **Key Files to Know:**
-- `RunCommand.java` - CLI entry point, loads data and calls agent
-- `ViewMapperAgent.java` - LLM orchestration with 4 tools
+- `RunCommand.java` - CLI entry point, loads data, creates discovery provider, and calls agent
+- `ViewMapperAgent.java` - LLM orchestration with 6 tools (2 discovery + 4 analysis)
 - `DependencyAnalyzer.java` - Graph algorithms (high-impact, leaf views, central hubs, subgraph extraction)
 - `TrinoSqlParser.java` - SQL parsing wrapper
+- `DiscoveryProvider.java` - Interface for catalog/schema discovery
+- `JdbcDiscoveryProvider.java` - Live Trino discovery via metadata queries
+- `TestDatasetDiscoveryProvider.java` - Synthetic catalog structure for test datasets
 - Test datasets: `src/main/resources/datasets/*.json` (4 files, embedded in JAR)
 
 **Build & Run:**
@@ -68,8 +82,9 @@ java -jar target/viewmapper-478.jar run --connection "test://simple_ecommerce" "
 
 **Test:**
 ```bash
-mvn test                              # All tests (18 files)
+mvn test                              # All tests (21 files, 202 tests)
 mvn test -Dtest="TrinoSqlParser*"     # Parser tests only
+mvn test -Dtest="*Discovery*"         # Discovery tests only
 ```
 
 ---
@@ -87,9 +102,9 @@ Load Schema → DependencyAnalyzer (builds graph)
     ↓
 ViewMapperAgent (LangChain4j + Claude)
     ↓
-Tool Executors (4 tools: analyze, suggest, extract, generate)
+Tool Executors (6 tools: listCatalogs, listSchemas, analyze, suggest, extract, generate)
     ↓
-DependencyAnalyzer (graph queries)
+DependencyAnalyzer (graph queries) / DiscoveryProvider (catalog/schema metadata)
     ↓
 Results → Claude → Natural Language Response
 ```
@@ -104,7 +119,8 @@ Results → Claude → Natural Language Response
 2. **Agent Layer** (`agent/`)
    - `ViewMapperAgent` - LangChain4j orchestrator
    - `AnthropicConfig` - API configuration
-   - 4 tool executors - Agent capabilities
+   - `DiscoveryProvider` - Interface for catalog/schema discovery
+   - 6 tool executors - Agent capabilities (2 discovery + 4 analysis)
    - Data types - Structured results
 
 3. **Analysis Layer** (`parser/`)
@@ -188,11 +204,14 @@ java -jar target/viewmapper-478.jar run \
 // Default - uses environment config
 ViewMapperAgent(DependencyAnalyzer analyzer)
 
-// Custom config
-ViewMapperAgent(AnthropicConfig config, DependencyAnalyzer analyzer)
+// With discovery provider
+ViewMapperAgent(DependencyAnalyzer analyzer, DiscoveryProvider provider)
+
+// Custom config with discovery
+ViewMapperAgent(DependencyAnalyzer analyzer, DiscoveryProvider provider, AnthropicConfig config)
 
 // Testing - accepts mock model (package-private)
-ViewMapperAgent(ChatLanguageModel model, DependencyAnalyzer analyzer)
+ViewMapperAgent(DependencyAnalyzer analyzer, DiscoveryProvider provider, ChatLanguageModel model)
 ```
 
 **Main Method:**
@@ -201,39 +220,59 @@ String chat(String userPrompt)
 ```
 
 **System Prompt Strategy:**
-1. Always assess complexity first using `analyzeSchema`
-2. Recommend strategy based on complexity level
-3. Explain different entry point strategies when needed
-4. Extract subgraphs with depth control
-5. Generate diagrams only when result is reasonable size
-6. Maintain conversation context across turns
+1. Use discovery tools when user asks "what catalogs" or "what schemas"
+2. Proactively offer discovery for vague questions like "explore database"
+3. For multi-catalog connections, guide: catalogs → schemas → analysis
+4. Always assess complexity first using `analyzeSchema`
+5. Recommend strategy based on complexity level
+6. Explain different entry point strategies when needed
+7. Extract subgraphs with depth control
+8. Generate diagrams only when result is reasonable size
+9. Maintain conversation context across turns
 
 #### Agent Tools
 
 All tools use LangChain4j's `@Tool` annotation for automatic registration:
 
-**1. AnalyzeSchemaToolExecutor**
+**1. ListCatalogsToolExecutor** (Discovery)
+```java
+List<String> listCatalogs()
+```
+- Returns: List of available catalogs
+- Purpose: Enable catalog discovery for multi-catalog connections
+- Use case: "What catalogs are available?"
+
+**2. ListSchemasToolExecutor** (Discovery)
+```java
+List<String> listSchemas(String catalog)
+```
+- Returns: List of schemas in the specified catalog
+- Purpose: Enable schema discovery within a catalog
+- Parameters: catalog name (required for multi-catalog, optional for single-catalog)
+- Use case: "What schemas are in viewzoo?"
+
+**3. AnalyzeSchemaToolExecutor**
 ```java
 SchemaComplexity analyzeSchema(String schemaName)
 ```
 - Returns: View count and complexity level (SIMPLE/MODERATE/COMPLEX/VERY_COMPLEX)
 - Purpose: First step in exploration - understand scale
 
-**2. SuggestEntryPointsToolExecutor**
+**4. SuggestEntryPointsToolExecutor**
 ```java
 EntryPointSuggestion suggestEntryPoints(String schemaName, int limit)
 ```
 - Returns: Three strategies (high-impact, leaf views, central hubs)
 - Purpose: Help user choose where to start exploration
 
-**3. ExtractSubgraphToolExecutor**
+**5. ExtractSubgraphToolExecutor**
 ```java
 SubgraphResult extractSubgraph(String focusView, int depthUpstream, int depthDownstream, int maxNodes)
 ```
 - Returns: Set of view names around focus view
 - Purpose: Extract manageable context
 
-**4. GenerateMermaidToolExecutor**
+**6. GenerateMermaidToolExecutor**
 ```java
 String generateMermaid(String focusView, Set<String> viewNames)
 ```
@@ -449,7 +488,7 @@ Default uses Claude Sonnet for reliable tool calling; Haiku may not consistently
 
 ## Testing Strategy
 
-### Test Organization (18 files)
+### Test Organization (21 files, 202 tests)
 
 **Parser Tests (7 files):**
 - `TrinoSqlParserBasicTests` - Basic SQL parsing
@@ -465,6 +504,11 @@ Default uses Claude Sonnet for reliable tool calling; Haiku may not consistently
 - `SchemaComplexityTest` - Complexity analysis
 - `EntryPointSuggestionTest` - Entry point format
 - `SubgraphResultTest` - Subgraph results
+
+**Discovery Tests (3 files):**
+- `TestDatasetDiscoveryProviderTest` - Test dataset discovery behavior
+- `ListCatalogsToolExecutorTest` - Catalog listing tool
+- `ListSchemasToolExecutorTest` - Schema listing tool
 
 **Tool Executor Tests (4 files):**
 - `AnalyzeSchemaToolExecutorTest`
@@ -521,9 +565,10 @@ mvn clean package
 ### Running Tests
 
 ```bash
-mvn test                              # All tests
+mvn test                              # All tests (202 tests)
 mvn test -Dtest="TrinoSqlParser*"     # Parser tests only
 mvn test -Dtest="DependencyAnalyzer*" # Analyzer tests only
+mvn test -Dtest="*Discovery*"         # Discovery tests only
 mvn test -X -Dtest="TestClassName"    # Debug mode
 ```
 
@@ -573,8 +618,12 @@ System.out.println("Subgraph: " + subgraph);
 - All public classes have class-level documentation
 - All public methods have method-level documentation
 - Examples included where helpful
+- No `@see` tags (adds noise, IDEs handle navigation)
+- No `{@link}` for simple class names in prose (e.g., "DiscoveryProvider" not "{@link DiscoveryProvider}")
+- Align `@param` tags with single space after tag (not extra alignment spaces)
 
-**Method Ordering:**
+**Field and Method Ordering:**
+- Private fields sorted alphabetically
 - Visitor methods in `DependencyExtractor` sorted alphabetically
 - Public API methods before private helpers
 
@@ -591,8 +640,17 @@ System.out.println("Subgraph: " + subgraph);
 **Code Style:**
 - Java 24 language features
 - 4-space indentation
-- No wildcard imports (except Trino AST classes)
+- No wildcard imports (except Trino AST classes); expand to explicit imports
 - Line length: prefer 100 characters, max 130
+- Prefer single-line expressions when total length < 130 characters
+- Method body comments start with lowercase (not headline case)
+- Prefer shorter variable names when type is clear (e.g., `provider` not `discoveryProvider`)
+- No extra blank lines in try-with-resources or similar blocks
+- Omit comments that merely restate what the code does (self-documenting code preferred)
+
+**Java Idioms:**
+- Null-safe comparisons: Use `.equals()` on known-non-null value (e.g., `boundCatalog.equals(catalog)` handles null/empty `catalog`)
+- Multi-catalog first: Check `if (boundCatalog == null)` before single-catalog case (more natural flow, aligns with recommended default)
 
 ---
 

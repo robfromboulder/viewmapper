@@ -4,6 +4,9 @@ package com.github.robfromboulder.viewmapper;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.robfromboulder.viewmapper.agent.ViewMapperAgent;
+import com.github.robfromboulder.viewmapper.agent.discovery.DiscoveryProvider;
+import com.github.robfromboulder.viewmapper.agent.discovery.JdbcDiscoveryProvider;
+import com.github.robfromboulder.viewmapper.agent.discovery.TestDatasetDiscoveryProvider;
 import com.github.robfromboulder.viewmapper.parser.DependencyAnalyzer;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -43,22 +46,26 @@ public class RunCommand implements Callable<Integer> {
     @Override
     public Integer call() throws Exception {
         try {
-            // use connection string to initialize analyzer
             DependencyAnalyzer analyzer = new DependencyAnalyzer();
+            DiscoveryProvider provider;
+
+            // use connection string to initialize dependency analyzer and discovery provider
             if (connection.startsWith("test://")) {
                 String datasetName = connection.substring(7);
                 loadFromFile(analyzer, datasetName);
+                provider = new TestDatasetDiscoveryProvider();
             } else if (connection.startsWith("jdbc:trino://")) {
                 if (schema == null || schema.trim().isEmpty())
                     throw new IllegalArgumentException("--schema parameter is required for JDBC connections\nExamples:\n  --connection jdbc:trino://host:8080?user=youruser --schema viewzoo.analytics (recommended: multi-catalog)\n  --connection jdbc:trino://host:8080/catalog?user=youruser --schema analytics (advanced: single catalog)");
                 loadFromJdbc(analyzer, connection, schema);
+                provider = new JdbcDiscoveryProvider(connection);
             } else {
                 throw new IllegalArgumentException("Invalid connection string. Must start with 'test://' or 'jdbc:trino://'\nExamples:\n  --connection test://simple_ecommerce\n  --connection jdbc:trino://host:8080?user=youruser --schema viewzoo.analytics (recommended: multi-catalog)\n  --connection jdbc:trino://host:8080/catalog?user=youruser --schema analytics (advanced: single catalog)");
             }
 
-            // call agent with dependency analyzer and user prompt
+            // call agent with dependency analyzer, discovery provider, and user prompt
             if (verbose) System.err.println("Analyzing schema with " + analyzer.getViewCount() + " views");
-            ViewMapperAgent agent = new ViewMapperAgent(analyzer);
+            ViewMapperAgent agent = new ViewMapperAgent(analyzer, provider);
             String response = agent.chat(prompt);
 
             // print agent response to stdout
@@ -125,8 +132,7 @@ public class RunCommand implements Callable<Integer> {
                 if (schemaName.contains(".")) {
                     throw new IllegalArgumentException("Connection is bound to catalog '" + urlCatalog + "'. " +
                             "Use simple schema name (not catalog.schema).\n" +
-                            "Example: --schema analytics"
-                    );
+                            "Example: --schema analytics");
                 }
                 catalog = urlCatalog;
                 schema = schemaName;
@@ -134,8 +140,7 @@ public class RunCommand implements Callable<Integer> {
                 if (!schemaName.contains(".")) {
                     throw new IllegalArgumentException("Multi-catalog connection allows exploring all catalogs. " +
                             "Use qualified schema: --schema catalog.schema\n" +
-                            "Example: --schema viewzoo.example"
-                    );
+                            "Example: --schema viewzoo.example");
                 }
                 String[] parts = schemaName.split("\\.", 2);
                 catalog = parts[0];

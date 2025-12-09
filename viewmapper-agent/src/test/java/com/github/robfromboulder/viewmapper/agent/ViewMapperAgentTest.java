@@ -23,7 +23,7 @@ class ViewMapperAgentTest {
     void setUp() {
         analyzer = new DependencyAnalyzer();
         mockModel = new MockChatLanguageModel();
-        agent = new ViewMapperAgent(analyzer, mockModel);
+        agent = new ViewMapperAgent(analyzer, null, mockModel);
     }
 
     @Test
