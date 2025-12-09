@@ -110,7 +110,7 @@ and will suggest views to focus upon instead:
         "run", "-i", "--rm",
         "-e", "ANTHROPIC_API_KEY=sk-ant-...",
         "-e", "VIEWMAPPER_CONNECTION=jdbc:trino://trino.example.com:8080?user=youruser",
-        "robfromboulder/viewmapper-mcp-server:478b"
+        "robfromboulder/viewmapper-mcp-server:478c"
       ]
     }
   }
@@ -125,7 +125,7 @@ and will suggest views to focus upon instead:
         "run", "-i", "--rm",
         "-e", "ANTHROPIC_API_KEY=sk-ant-...",
         "-e", "VIEWMAPPER_CONNECTION=jdbc:trino://host.docker.internal:8080?user=youruser",
-        "robfromboulder/viewmapper-mcp-server:478b"
+        "robfromboulder/viewmapper-mcp-server:478c"
       ]
     }
   }
@@ -141,7 +141,7 @@ and will suggest views to focus upon instead:
         "run", "-i", "--rm",
         "-e", "ANTHROPIC_API_KEY=sk-ant-...",
         "-e", "VIEWMAPPER_CONNECTION=jdbc:trino://trino.example.com:8080/catalog?user=youruser",
-        "robfromboulder/viewmapper-mcp-server:478b"
+        "robfromboulder/viewmapper-mcp-server:478c"
       ]
     }
   }
@@ -156,7 +156,7 @@ and will suggest views to focus upon instead:
         "run", "-i", "--rm",
         "-e", "ANTHROPIC_API_KEY=sk-ant-...",
         "-e", "VIEWMAPPER_CONNECTION=test://simple_ecommerce",
-        "robfromboulder/viewmapper-mcp-server:478b"
+        "robfromboulder/viewmapper-mcp-server:478c"
       ]
     }
   }
