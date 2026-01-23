@@ -77,7 +77,7 @@
 **Build & Run:**
 ```bash
 mvn clean package
-java -jar target/viewmapper-478.jar run --connection "test://simple_ecommerce" "<prompt>"
+java -jar target/viewmapper-479.jar run --connection "test://simple_ecommerce" "<prompt>"
 ```
 
 **Test:**
@@ -147,7 +147,7 @@ Results → Claude → Natural Language Response
 
 **Usage:**
 ```bash
-java -jar viewmapper-478.jar run --connection <string> [options] <prompt>
+java -jar viewmapper-479.jar run --connection <string> [options] <prompt>
 ```
 
 **Parameters:**
@@ -171,25 +171,25 @@ java -jar viewmapper-478.jar run --connection <string> [options] <prompt>
 **Examples:**
 ```bash
 # Test dataset
-java -jar target/viewmapper-478.jar run --connection "test://simple_ecommerce" "Show me the full dependency diagram"
+java -jar target/viewmapper-479.jar run --connection "test://simple_ecommerce" "Show me the full dependency diagram"
 
 # JDBC multi-catalog (recommended)
-java -jar target/viewmapper-478.jar run \
+java -jar target/viewmapper-479.jar run \
   --connection "jdbc:trino://localhost:8080?user=youruser" \
   --schema viewzoo.example \
   "Show me the dependency diagram"
 
 # JDBC single-catalog (advanced - enterprise/regulatory)
-java -jar target/viewmapper-478.jar run \
+java -jar target/viewmapper-479.jar run \
   --connection "jdbc:trino://localhost:8080/production?user=youruser" \
   --schema analytics \
   "What are the high-impact views?"
 
 # JSON output
-java -jar target/viewmapper-478.jar run --connection "test://moderate_analytics" --output json "Analyze this schema"
+java -jar target/viewmapper-479.jar run --connection "test://moderate_analytics" --output json "Analyze this schema"
 
 # Verbose debugging with multi-catalog
-java -jar target/viewmapper-478.jar run \
+java -jar target/viewmapper-479.jar run \
   --connection "jdbc:trino://localhost:8080?user=youruser" \
   --schema viewzoo.analytics \
   --verbose "What are the leaf views?"
@@ -559,8 +559,8 @@ mvn clean package
 ```
 
 **Produces:**
-- `target/original-viewmapper-478.jar` - Regular JAR
-- `target/viewmapper-478.jar` - Fat JAR with all dependencies
+- `target/original-viewmapper-479.jar` - Regular JAR
+- `target/viewmapper-479.jar` - Fat JAR with all dependencies
 
 ### Running Tests
 
@@ -756,7 +756,7 @@ SELECT * FROM temp JOIN schema3.table2 ON temp.id = table2.id
 - **JDK 24** - Java compiler and runtime
 
 **Core Libraries:**
-- **Trino Parser 478** - SQL parsing and AST traversal
+- **Trino Parser 479** - SQL parsing and AST traversal
 - **JGraphT 1.5.2** - Graph algorithms and data structures
 - **LangChain4j 0.35.0** - LLM agent framework with Anthropic support
 - **Picocli 4.7.5** - CLI framework with annotations

@@ -15,8 +15,8 @@ NC='\033[0m' # No Color
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AGENT_DIR="${PROJECT_ROOT}/viewmapper-agent"
 MCP_SERVER_DIR="${PROJECT_ROOT}/viewmapper-mcp-server"
-JAR_NAME="viewmapper-478.jar"
-DOCKER_IMAGE="viewmapper:478"
+JAR_NAME="viewmapper-479.jar"
+DOCKER_IMAGE="viewmapper:479"
 
 # Helper functions
 log_info() {
@@ -110,7 +110,7 @@ build_docker() {
 display_summary() {
     echo ""
     echo "=========================================="
-    log_success "viewmapper-478 is go 🚀"
+    log_success "viewmapper-479 is go 🚀"
     echo "=========================================="
     echo ""
     echo "Build artifacts:"

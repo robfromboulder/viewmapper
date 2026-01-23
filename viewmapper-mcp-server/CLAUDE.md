@@ -265,7 +265,7 @@ cmd = [
 ANTHROPIC_API_KEY_FOR_VIEWMAPPER="sk-ant-..."  # or ANTHROPIC_API_KEY
 
 # Path to ViewMapper JAR
-VIEWMAPPER_JAR="/absolute/path/to/viewmapper-478.jar"
+VIEWMAPPER_JAR="/absolute/path/to/viewmapper-479.jar"
 ```
 
 ### Optional Environment Variables
@@ -293,7 +293,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
         "run", "-i", "--rm",
         "-e", "ANTHROPIC_API_KEY_FOR_VIEWMAPPER=sk-ant-your-key-here",
         "-e", "VIEWMAPPER_CONNECTION=test://simple_ecommerce",
-        "viewmapper:478"
+        "viewmapper:479"
       ]
     }
   }
@@ -313,7 +313,7 @@ For developers making changes to the MCP server:
       "cwd": "/absolute/path/to/viewmapper/viewmapper-mcp-server",
       "env": {
         "ANTHROPIC_API_KEY_FOR_VIEWMAPPER": "sk-ant-your-key-here",
-        "VIEWMAPPER_JAR": "/absolute/path/to/viewmapper-agent/target/viewmapper-478.jar",
+        "VIEWMAPPER_JAR": "/absolute/path/to/viewmapper-agent/target/viewmapper-479.jar",
         "VIEWMAPPER_CONNECTION": "test://simple_ecommerce"
       }
     }

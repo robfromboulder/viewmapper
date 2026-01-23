@@ -3,7 +3,7 @@
 
 [project]
 name = "viewmapper-mcp-server"
-version = "478"
+version = "479"
 description = "MCP server for ViewMapper"
 authors = [
     {name = "Rob Dickinson"}

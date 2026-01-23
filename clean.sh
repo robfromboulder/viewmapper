@@ -15,7 +15,7 @@ NC='\033[0m' # No Color
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AGENT_DIR="${PROJECT_ROOT}/viewmapper-agent"
 MCP_SERVER_DIR="${PROJECT_ROOT}/viewmapper-mcp-server"
-DOCKER_IMAGE="viewmapper:478"
+DOCKER_IMAGE="viewmapper:479"
 
 # Helper functions
 log_info() {
@@ -77,9 +77,9 @@ clean_mcp_server() {
     fi
 
     # Remove copied JAR file
-    if [ -f "viewmapper-478.jar" ]; then
-        rm -f viewmapper-478.jar
-        log_success "Removed viewmapper-478.jar"
+    if [ -f "viewmapper-479.jar" ]; then
+        rm -f viewmapper-479.jar
+        log_success "Removed viewmapper-479.jar"
     fi
 
     # Remove .pytest_cache if it exists
@@ -156,7 +156,7 @@ display_summary() {
     echo "  - viewmapper-agent/dependency-reduced-pom.xml"
     echo "  - viewmapper-mcp-server/venv/"
     echo "  - viewmapper-mcp-server/__pycache__/"
-    echo "  - viewmapper-mcp-server/viewmapper-478.jar"
+    echo "  - viewmapper-mcp-server/viewmapper-479.jar"
     if check_docker &> /dev/null; then
         echo "  - Docker image: ${DOCKER_IMAGE}"
         echo "  - Docker build cache"

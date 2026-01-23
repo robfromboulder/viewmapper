@@ -2,7 +2,7 @@ ARG VERSION
 FROM ubuntu:jammy
 
 # copy distribution files to temporary directory
-COPY mcp_server.py pyproject.toml README.md viewmapper-478.jar /tmp/runtime/
+COPY mcp_server.py pyproject.toml README.md viewmapper-479.jar /tmp/runtime/
 
 ARG VERSION
 FROM ubuntu:jammy-20251001
@@ -45,5 +45,5 @@ WORKDIR /home/runtime
 RUN python3 -m pip install --no-cache-dir -e .
 
 # run server
-ENV VIEWMAPPER_JAR=/home/runtime/viewmapper-478.jar
+ENV VIEWMAPPER_JAR=/home/runtime/viewmapper-479.jar
 CMD ["python", "mcp_server.py"]

@@ -33,12 +33,12 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Validate version format (must be 478 followed by a letter)
+# Validate version format (must be 479 followed by a letter)
 validate_version() {
     local version=$1
-    if [[ ! "$version" =~ ^478[a-z]$ ]]; then
+    if [[ ! "$version" =~ ^479[a-z]$ ]]; then
         log_error "Invalid version format: $version"
-        echo "Version must be 478 followed by a single lowercase letter (e.g., 478a, 478b, 478c)"
+        echo "Version must be 479 followed by a single lowercase letter (e.g., 479a, 479b, 479c)"
         exit 1
     fi
 }
@@ -194,7 +194,7 @@ main() {
     if [ $# -ne 1 ]; then
         log_error "Missing version parameter"
         echo "Usage: $0 <version>"
-        echo "Example: $0 478c"
+        echo "Example: $0 479a"
         exit 1
     fi
 

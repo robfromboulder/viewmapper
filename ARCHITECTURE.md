@@ -129,8 +129,8 @@ Agent: [Checks if manageable, calls GenerateMermaid]
 - **Language:** Java 24
 - **CLI Framework:** Picocli 4.7.5 (command-line argument parsing)
 - **LLM Framework:** LangChain4j 0.35.0 with Anthropic integration
-- **SQL Parser:** Trino Parser 478
-- **Database Client:** Trino JDBC 478 (fully implemented)
+- **SQL Parser:** Trino Parser 479
+- **Database Client:** Trino JDBC 479 (fully implemented)
 - **JSON:** Jackson 2.16.1
 - **Graph Analysis:** JGraphT 1.5.2 (fully integrated)
 - **Build Tool:** Maven with Shade plugin (fat JAR)
@@ -192,7 +192,7 @@ viewmapper/
 
 **Current Implementation Status:**
 - ✅ Java CLI with Picocli: Fully implemented
-- ✅ SQL Parser (Trino 478): Fully implemented with comprehensive tests
+- ✅ SQL Parser (Trino 479): Fully implemented with comprehensive tests
 - ✅ Graph Analysis (JGraphT): Fully implemented (high-impact, leaf, centrality, subgraph)
 - ✅ LangChain4j Agent: Fully implemented with 6 tool executors (4 analysis + 2 discovery)
 - ✅ Catalog & Schema Discovery: Essential for multi-catalog exploration (recommended default)
@@ -612,13 +612,13 @@ graph TB
 ### Version Numbering Convention
 
 **Local Development:**
-- Local builds always use version `478` (e.g., `viewmapper:478`)
+- Local builds always use version `479` (e.g., `viewmapper:479`)
 - This is the version built by `./build.sh`
 - Never used in public repositories or documentation
 
 **Public Releases:**
-- Public releases use `478` + lowercase letter (e.g., `478a`, `478b`, `478c`)
-- Format: `robfromboulder/viewmapper-mcp-server:478c`
+- Public releases use `479` + lowercase letter (e.g., `479a`, `479b`, `479c`)
+- Format: `robfromboulder/viewmapper-mcp-server:479c`
 - **IMPORTANT:** Never use the `latest` tag
   - `latest` creates ambiguity and unpredictable caching behavior
   - All references (docs, configs, examples) must use explicit version tags
@@ -638,9 +638,9 @@ Removes:
 - `viewmapper-agent/dependency-reduced-pom.xml` - Maven Shade artifact
 - `viewmapper-mcp-server/venv/` - Python virtual environment (75M)
 - `viewmapper-mcp-server/__pycache__/` - Python bytecode cache
-- `viewmapper-mcp-server/viewmapper-478.jar` - Copied JAR (27M)
+- `viewmapper-mcp-server/viewmapper-479.jar` - Copied JAR (27M)
 - `viewmapper-mcp-server/.pytest_cache/` - Pytest cache
-- Docker image `viewmapper:478` (~457M)
+- Docker image `viewmapper:479` (~457M)
 - Docker build cache and system cache
 
 Result: Project reduces from ~134M to ~3M (source code only)
@@ -654,25 +654,25 @@ Steps:
 1. Checks prerequisites (Maven, Docker, Java)
 2. Builds viewmapper-agent JAR with `mvn clean package`
 3. Copies JAR to viewmapper-mcp-server directory
-4. Builds Docker container `viewmapper:478` with `--no-cache`
+4. Builds Docker container `viewmapper:479` with `--no-cache`
 5. Provides color-coded progress output and build summary
 
 **3. `./release.sh <version>` - Release to DockerHub**
 ```bash
-./release.sh 478c
+./release.sh 479c
 ```
 
 Steps:
-1. Validates version format (must be `478[a-z]`)
+1. Validates version format (must be `479[a-z]`)
 2. Verifies git working directory is clean (no uncommitted changes)
 3. Runs `./clean.sh` to ensure fresh build
 4. Runs `./build.sh` to create artifacts
 5. Builds and pushes multi-platform Docker image:
    - Platforms: `linux/amd64`, `linux/arm64`
-   - Tag: `robfromboulder/viewmapper-mcp-server:478c`
+   - Tag: `robfromboulder/viewmapper-mcp-server:479c`
    - Includes SBOM and provenance metadata
    - Uses `docker buildx` with `--no-cache`
-6. Creates annotated git tag `v478c`
+6. Creates annotated git tag `v479c`
 7. Pushes git tag to origin
 8. Displays summary with next steps
 
@@ -686,8 +686,8 @@ If you need fine-grained control or want to diagnose a specific build step:
 cd viewmapper-agent
 mvn clean package
 cd ../viewmapper-mcp-server
-cp ../viewmapper-agent/target/viewmapper-478.jar .
-docker image rm -f viewmapper:478 && docker build --no-cache -t viewmapper:478 .
+cp ../viewmapper-agent/target/viewmapper-479.jar .
+docker image rm -f viewmapper:479 && docker build --no-cache -t viewmapper:479 .
 ```
 
 ### Claude Desktop Configuration (Docker - Production)
@@ -702,7 +702,7 @@ docker image rm -f viewmapper:478 && docker build --no-cache -t viewmapper:478 .
         "run", "-i", "--rm",
         "-e", "ANTHROPIC_API_KEY_FOR_VIEWMAPPER=sk-ant-...",
         "-e", "VIEWMAPPER_CONNECTION=jdbc:trino://trino.example.com:8080?user=youruser",
-        "robfromboulder/viewmapper-mcp-server:478c"
+        "robfromboulder/viewmapper-mcp-server:479a"
       ]
     }
   }
@@ -719,7 +719,7 @@ docker image rm -f viewmapper:478 && docker build --no-cache -t viewmapper:478 .
         "run", "-i", "--rm",
         "-e", "ANTHROPIC_API_KEY_FOR_VIEWMAPPER=sk-ant-...",
         "-e", "VIEWMAPPER_CONNECTION=test://simple_ecommerce",
-        "robfromboulder/viewmapper-mcp-server:478c"
+        "robfromboulder/viewmapper-mcp-server:479a"
       ]
     }
   }
@@ -736,7 +736,7 @@ docker image rm -f viewmapper:478 && docker build --no-cache -t viewmapper:478 .
         "run", "-i", "--rm",
         "-e", "ANTHROPIC_API_KEY_FOR_VIEWMAPPER=sk-ant-...",
         "-e", "VIEWMAPPER_CONNECTION=test://simple_ecommerce",
-        "viewmapper:478"
+        "viewmapper:479"
       ]
     }
   }
@@ -751,11 +751,11 @@ For developers making changes to the MCP server:
 # 1. build Java CLI
 cd viewmapper-agent
 mvn clean package
-# Produces: target/viewmapper-478.jar
+# Produces: target/viewmapper-479.jar
 
 # 2. set up Python MCP
 cd ../viewmapper-mcp-server
-cp ../viewmapper-agent/target/viewmapper-478.jar .
+cp ../viewmapper-agent/target/viewmapper-479.jar .
 python3.14 -m venv venv
 source venv/bin/activate
 pip install -e ".[dev]"  # install with dev dependencies (includes pytest)
@@ -772,7 +772,7 @@ pip install -e ".[dev]"  # install with dev dependencies (includes pytest)
       "env": {
         "ANTHROPIC_API_KEY_FOR_VIEWMAPPER": "sk-...",
         "VIEWMAPPER_CONNECTION": "test://simple_ecommerce",
-        "VIEWMAPPER_JAR": "/absolute/path/to/viewmapper-agent/target/viewmapper-478.jar"
+        "VIEWMAPPER_JAR": "/absolute/path/to/viewmapper-agent/target/viewmapper-479.jar"
       }
     }
   }

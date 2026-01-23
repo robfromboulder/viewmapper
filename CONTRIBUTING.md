@@ -146,7 +146,7 @@ pytest --cov=viewmapper_mcp_server       # With coverage
 **End-to-End:**
 ```bash
 # Test with embedded dataset
-java -jar viewmapper-agent/target/viewmapper-478.jar run \
+java -jar viewmapper-agent/target/viewmapper-479.jar run \
   --connection "test://simple_ecommerce" \
   "Show me the full dependency diagram"
 
@@ -162,7 +162,7 @@ Builds and releases can be run via Claude Code or manually.
 ```
 Ask Claude: "Please run ./build.sh"
 Ask Claude: "Please run ./clean.sh then rebuild"
-Ask Claude: "Please release version 478b to DockerHub"
+Ask Claude: "Please release version 479b to DockerHub"
 ```
 
 **Manual execution (if needed):**
@@ -180,15 +180,15 @@ Ask Claude: "Please release version 478b to DockerHub"
 
 **Release to DockerHub:**
 ```bash
-./release.sh 478a                        # Replace 'a' with next letter
+./release.sh 479a                        # Replace 'a' with next letter
 ```
 
 The release script will:
 - Verify git working directory is clean
 - Run clean + build
 - Build multi-platform Docker image
-- Push to `robfromboulder/viewmapper-mcp-server:478a`
-- Create and push git tag `v478a`
+- Push to `robfromboulder/viewmapper-mcp-server:479a`
+- Create and push git tag `v479a`
 
 ## Documentation Standards
 

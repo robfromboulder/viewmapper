@@ -21,14 +21,14 @@ mvn clean package
 ### Running with Test Datasets
 
 ```bash
-java -jar target/viewmapper-478.jar run --connection "test://simple_ecommerce" "Show me the dependency diagram"
+java -jar target/viewmapper-479.jar run --connection "test://simple_ecommerce" "Show me the dependency diagram"
 ```
 
 ### Running with Live Trino Connection
 
 **Option 1: Catalog in URL (catalog-bound conversation)**
 ```bash
-java -jar target/viewmapper-478.jar run \
+java -jar target/viewmapper-479.jar run \
   --connection "jdbc:trino://localhost:8080/production?user=youruser" \
   --schema analytics \
   "What are the high-impact views?"
@@ -36,7 +36,7 @@ java -jar target/viewmapper-478.jar run \
 
 **Option 2: No catalog in URL (multi-catalog queries)**
 ```bash
-java -jar target/viewmapper-478.jar run \
+java -jar target/viewmapper-479.jar run \
   --connection "jdbc:trino://localhost:8080?user=youruser" \
   --schema viewzoo.example \
   "Show me the dependency diagram"
@@ -46,10 +46,10 @@ java -jar target/viewmapper-478.jar run \
 
 ```bash
 # JSON output
-java -jar target/viewmapper-478.jar run --connection "test://simple_ecommerce" --output json "Analyze this schema"
+java -jar target/viewmapper-479.jar run --connection "test://simple_ecommerce" --output json "Analyze this schema"
 
 # Verbose mode (shows agent reasoning and connection details)
-java -jar target/viewmapper-478.jar run \
+java -jar target/viewmapper-479.jar run \
   --connection "jdbc:trino://localhost:8080/prod?user=youruser" \
   --schema analytics \
   --verbose "What are the leaf views?"
@@ -81,7 +81,7 @@ ViewMapper includes test data files embedded in the JAR, for testing the agent w
 
 **Example Test Query:**
 ```bash
-java -jar target/viewmapper-478.jar run --connection "test://simple_ecommerce" "Show me the full dependency diagram"
+java -jar target/viewmapper-479.jar run --connection "test://simple_ecommerce" "Show me the full dependency diagram"
 ```
 
 ### 2. moderate_analytics
@@ -109,10 +109,10 @@ java -jar target/viewmapper-478.jar run --connection "test://simple_ecommerce" "
 **Example Test Queries:**
 ```bash
 # Test entry point suggestions
-java -jar target/viewmapper-478.jar run --connection "test://moderate_analytics" "What are the high-impact views in this schema?"
+java -jar target/viewmapper-479.jar run --connection "test://moderate_analytics" "What are the high-impact views in this schema?"
 
 # Test subgraph extraction
-java -jar target/viewmapper-478.jar run --connection "test://moderate_analytics" "Show me everything that depends on user_lifetime_value"
+java -jar target/viewmapper-479.jar run --connection "test://moderate_analytics" "Show me everything that depends on user_lifetime_value"
 ```
 
 ### 3. realistic_bi_warehouse
@@ -147,13 +147,13 @@ java -jar target/viewmapper-478.jar run --connection "test://moderate_analytics"
 **Example Test Queries:**
 ```bash
 # Test high-impact view identification
-java -jar target/viewmapper-478.jar run --connection "test://realistic_bi_warehouse" "Which views have the most dependents?"
+java -jar target/viewmapper-479.jar run --connection "test://realistic_bi_warehouse" "Which views have the most dependents?"
 
 # Test leaf view identification
-java -jar target/viewmapper-478.jar run --connection "test://realistic_bi_warehouse" "What are the final output views?"
+java -jar target/viewmapper-479.jar run --connection "test://realistic_bi_warehouse" "What are the final output views?"
 
 # Test focused exploration
-java -jar target/viewmapper-478.jar run --connection "test://realistic_bi_warehouse" "Show me the dependency chain for executive_kpi_dashboard"
+java -jar target/viewmapper-479.jar run --connection "test://realistic_bi_warehouse" "Show me the dependency chain for executive_kpi_dashboard"
 ```
 
 ### 4. complex_enterprise
@@ -193,13 +193,13 @@ java -jar target/viewmapper-478.jar run --connection "test://realistic_bi_wareho
 **Example Test Queries:**
 ```bash
 # Test complexity analysis
-java -jar target/viewmapper-478.jar run --connection "test://complex_enterprise" "Analyze this schema"
+java -jar target/viewmapper-479.jar run --connection "test://complex_enterprise" "Analyze this schema"
 
 # Test entry point suggestions
-java -jar target/viewmapper-478.jar run --connection "test://complex_enterprise" "What are the central hub views?"
+java -jar target/viewmapper-479.jar run --connection "test://complex_enterprise" "What are the central hub views?"
 
 # Test subgraph with depth control
-java -jar target/viewmapper-478.jar run --connection "test://complex_enterprise" "Show me 2 levels upstream and 1 level downstream from customer_360"
+java -jar target/viewmapper-479.jar run --connection "test://complex_enterprise" "Show me 2 levels upstream and 1 level downstream from customer_360"
 ```
 
 ## Troubleshooting
