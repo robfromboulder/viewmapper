@@ -55,7 +55,7 @@ viewmapper/
 
 **Prerequisites:**
 - Claude Code (required - install from https://claude.ai/code)
-- JDK 24
+- JDK 25
 - Maven 3.8+
 - Python 3.14+
 - Docker
@@ -258,7 +258,7 @@ Update the schema in list_tools()
 **IntelliJ Inspections:**
 After Claude generates code, use IntelliJ to:
 - Remove unused variables, methods, imports
-- Apply language-level suggestions (Java 24 features)
+- Apply language-level suggestions (Java 25 features)
 - Fix nullability warnings
 - Optimize string operations
 - Simplify boolean expressions

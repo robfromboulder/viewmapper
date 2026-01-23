@@ -638,7 +638,7 @@ System.out.println("Subgraph: " + subgraph);
 - Real-world scenario tests
 
 **Code Style:**
-- Java 24 language features
+- Java 25 language features
 - 4-space indentation
 - No wildcard imports (except Trino AST classes); expand to explicit imports
 - Line length: prefer 100 characters, max 130
@@ -753,7 +753,7 @@ SELECT * FROM temp JOIN schema3.table2 ON temp.id = table2.id
 - **Maven 3.8+** - Build and dependency management
 
 **Runtime:**
-- **JDK 24** - Java compiler and runtime
+- **JDK 25** - Java compiler and runtime
 
 **Core Libraries:**
 - **Trino Parser 479** - SQL parsing and AST traversal

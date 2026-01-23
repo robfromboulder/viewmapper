@@ -4,7 +4,7 @@ This module exposes the ViewMapper agent as an MCP tool for Claude Desktop, enab
 ## Dependencies
 
 - **Trino 479** - For schemas to map
-- **Java 24** - Required to run ViewMapper CLI
+- **Java 25** - Required to run ViewMapper CLI
 - **Python 3.14** - Required for MCP server
 - **ViewMapper JAR** - Built from `../viewmapper-agent/` directory
 - **Anthropic API Key** - For Claude agent in Java CLI

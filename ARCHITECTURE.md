@@ -126,7 +126,7 @@ Agent: [Checks if manageable, calls GenerateMermaid]
 ## Technology Stack
 
 ### Java Components
-- **Language:** Java 24
+- **Language:** Java 25
 - **CLI Framework:** Picocli 4.7.5 (command-line argument parsing)
 - **LLM Framework:** LangChain4j 0.35.0 with Anthropic integration
 - **SQL Parser:** Trino Parser 479

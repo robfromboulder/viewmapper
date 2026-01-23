@@ -3,7 +3,7 @@ This module contains the core agent for the ViewMapper project, based on LangCha
 
 ## Dependencies
 
-- **JDK 24** - Java compiler and runtime 
+- **JDK 25** - Java compiler and runtime 
 - **Trino-Parser** - SQL parsing and AST
 - **Jackson** - JSON processing
 - **LangChain4j** - LLM agent framework

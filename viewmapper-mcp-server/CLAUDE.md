@@ -96,7 +96,7 @@ pytest -v                              # All unit tests (mocked)
 │  Java CLI        │  ViewMapper agent (separate repo)
 │  viewmapper.jar  │  - LangChain4j + Claude API
 │                  │  - SQL parsing (Trino parser)
-│  Java 24         │  - Mermaid diagram generation
+│  Java 25         │  - Mermaid diagram generation
 └──────────────────┘
 ```
 
@@ -637,7 +637,7 @@ Simplicity and backward compatibility vs. cleaner architecture.
 
 **External Dependencies:**
 - **ViewMapper JAR** - Java CLI (separate build, see ../viewmapper-agent)
-- **JDK 24** - Java runtime for JAR execution
+- **JDK 25** - Java runtime for JAR execution
 - **Anthropic API** - Claude API access (via Java agent)
 
 **See:** `pyproject.toml` for complete dependency list with versions
