@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Tests for ViewMapperAgent using MockChatLanguageModel.
+ * Tests for ViewMapperAgent using MockChatModel.
  * <p>
  * These tests verify agent behavior without making actual API calls.
  */
@@ -17,12 +17,12 @@ class ViewMapperAgentTest {
 
     private ViewMapperAgent agent;
     private DependencyAnalyzer analyzer;
-    private MockChatLanguageModel mockModel;
+    private MockChatModel mockModel;
 
     @BeforeEach
     void setUp() {
         analyzer = new DependencyAnalyzer();
-        mockModel = new MockChatLanguageModel();
+        mockModel = new MockChatModel();
         agent = new ViewMapperAgent(analyzer, null, mockModel);
     }
 

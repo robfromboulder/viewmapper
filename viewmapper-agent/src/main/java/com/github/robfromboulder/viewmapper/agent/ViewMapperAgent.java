@@ -11,7 +11,7 @@ import com.github.robfromboulder.viewmapper.agent.tools.ListSchemasToolExecutor;
 import com.github.robfromboulder.viewmapper.agent.tools.SuggestEntryPointsToolExecutor;
 import com.github.robfromboulder.viewmapper.parser.DependencyAnalyzer;
 import dev.langchain4j.model.anthropic.AnthropicChatModel;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.service.SystemMessage;
 
@@ -60,7 +60,7 @@ public class ViewMapperAgent {
         Objects.requireNonNull(config, "Config cannot be null");
         Objects.requireNonNull(analyzer, "Analyzer cannot be null");
 
-        ChatLanguageModel model = AnthropicChatModel.builder()
+        ChatModel model = AnthropicChatModel.builder()
                 .apiKey(config.getApiKey())
                 .modelName(config.getModelName())
                 .timeout(config.getTimeout())
@@ -77,19 +77,19 @@ public class ViewMapperAgent {
         tools.add(new GenerateMermaidToolExecutor(analyzer));
 
         this.assistant = AiServices.builder(Assistant.class)
-                .chatLanguageModel(model)
+                .chatModel(model)
                 .tools(tools.toArray())
                 .build();
     }
 
     /**
-     * Constructor for testing with a custom ChatLanguageModel.
+     * Constructor for testing with a custom ChatModel.
      *
      * @param analyzer Dependency analyzer with loaded schema
      * @param provider Provider for catalog/schema discovery (null disables discovery tools)
-     * @param model    Custom chat language model (e.g., mock for testing)
+     * @param model    Custom chat model (e.g., mock for testing)
      */
-    ViewMapperAgent(DependencyAnalyzer analyzer, DiscoveryProvider provider, ChatLanguageModel model) {
+    ViewMapperAgent(DependencyAnalyzer analyzer, DiscoveryProvider provider, ChatModel model) {
         List<Object> tools = new ArrayList<>();
         if (provider != null) {
             tools.add(new ListCatalogsToolExecutor(provider));
@@ -101,7 +101,7 @@ public class ViewMapperAgent {
         tools.add(new GenerateMermaidToolExecutor(analyzer));
 
         this.assistant = AiServices.builder(Assistant.class)
-                .chatLanguageModel(model)
+                .chatModel(model)
                 .tools(tools.toArray())
                 .build();
     }

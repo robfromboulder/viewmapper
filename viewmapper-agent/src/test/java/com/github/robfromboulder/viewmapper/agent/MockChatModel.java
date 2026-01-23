@@ -2,29 +2,29 @@
 
 package com.github.robfromboulder.viewmapper.agent;
 
-import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.output.Response;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.response.ChatResponse;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Mock ChatLanguageModel for testing without API calls.
+ * Mock ChatModel for testing without API calls.
  * <p>
- * Allows configuring canned responses for specific keywords, and supports tools by implementing the overloaded generate() method.
+ * Allows configuring canned responses for specific keywords.
  */
-public class MockChatLanguageModel implements ChatLanguageModel {
+public class MockChatModel implements ChatModel {
 
     private int callCount = 0;
     private final Map<String, String> cannedResponses = new HashMap<>();
     private String defaultResponse = "Mock response";
 
     /**
-     * Returns the number of times generate() was called.
+     * Returns the number of times doChat() was called.
      */
     public int getCallCount() {
         return callCount;
@@ -45,37 +45,47 @@ public class MockChatLanguageModel implements ChatLanguageModel {
     }
 
     /**
-     * Generate a response to the specified messages.
+     * Implementation of the ChatModel interface for testing.
      */
     @Override
-    public Response<AiMessage> generate(List<ChatMessage> messages) {
+    public ChatResponse doChat(ChatRequest chatRequest) {
         callCount++;
 
+        List<ChatMessage> messages = chatRequest.messages();
+
         // check at least one message is present
-        if (messages.isEmpty()) return Response.from(AiMessage.from(defaultResponse));
+        if (messages.isEmpty()) {
+            return ChatResponse.builder()
+                    .aiMessage(AiMessage.from(defaultResponse))
+                    .build();
+        }
+
+        // get the last message
+        String lastMessage = messages.getLast().toString();
 
         // check for exact match
-        String lastMessage = messages.getLast().toString();
-        if (cannedResponses.containsKey(lastMessage)) return Response.from(AiMessage.from(cannedResponses.get(lastMessage)));
+        if (cannedResponses.containsKey(lastMessage)) {
+            return ChatResponse.builder()
+                    .aiMessage(AiMessage.from(cannedResponses.get(lastMessage)))
+                    .build();
+        }
 
         // check for keyword matches
         for (Map.Entry<String, String> entry : cannedResponses.entrySet()) {
             String key = entry.getKey();
             if (key.startsWith("*") && key.endsWith("*")) {
                 String keyword = key.substring(1, key.length() - 1);
-                if (lastMessage.contains(keyword)) return Response.from(AiMessage.from(entry.getValue()));
+                if (lastMessage.contains(keyword)) {
+                    return ChatResponse.builder()
+                            .aiMessage(AiMessage.from(entry.getValue()))
+                            .build();
+                }
             }
         }
 
-        return Response.from(AiMessage.from(defaultResponse));
-    }
-
-    /**
-     * Generate a response to the specified messages using tools.
-     */
-    @Override
-    public Response<AiMessage> generate(List<ChatMessage> messages, List<ToolSpecification> toolSpecifications) {
-        return generate(messages);
+        return ChatResponse.builder()
+                .aiMessage(AiMessage.from(defaultResponse))
+                .build();
     }
 
 }

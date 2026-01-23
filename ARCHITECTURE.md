@@ -464,7 +464,7 @@ public class ViewMapperAgent {
 
     // Explicit config constructor
     public ViewMapperAgent(DependencyAnalyzer analyzer, DiscoveryProvider provider, AnthropicConfig config) {
-        ChatLanguageModel model = AnthropicChatModel.builder()
+        ChatModel model = AnthropicChatModel.builder()
             .apiKey(config.getApiKey())
             .modelName(config.getModelName())
             .timeout(config.getTimeout())
@@ -481,7 +481,7 @@ public class ViewMapperAgent {
         tools.add(new GenerateMermaidToolExecutor(analyzer));
 
         this.assistant = AiServices.builder(Assistant.class)
-            .chatLanguageModel(model)
+            .chatModel(model)
             .tools(tools.toArray())
             .build();
     }

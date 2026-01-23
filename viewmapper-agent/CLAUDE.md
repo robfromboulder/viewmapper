@@ -211,7 +211,7 @@ ViewMapperAgent(DependencyAnalyzer analyzer, DiscoveryProvider provider)
 ViewMapperAgent(DependencyAnalyzer analyzer, DiscoveryProvider provider, AnthropicConfig config)
 
 // Testing - accepts mock model (package-private)
-ViewMapperAgent(DependencyAnalyzer analyzer, DiscoveryProvider provider, ChatLanguageModel model)
+ViewMapperAgent(DependencyAnalyzer analyzer, DiscoveryProvider provider, ChatModel model)
 ```
 
 **Main Method:**
@@ -517,15 +517,15 @@ Default uses Claude Sonnet for reliable tool calling; Haiku may not consistently
 - `GenerateMermaidToolExecutorTest`
 
 **Agent Tests (3 files):**
-- `ViewMapperAgentTest` - End-to-end with MockChatLanguageModel
-- `MockChatLanguageModel` - Test double (no API calls)
+- `ViewMapperAgentTest` - End-to-end with MockChatModel
+- `MockChatModel` - Test double (no API calls)
 - `AnthropicConfigTest` - Environment variable loading
 
 ### Testing Philosophy
 
 - JUnit 5 + AssertJ for fluent assertions
 - No live API calls or Trino connections required
-- `MockChatLanguageModel` for agent testing
+- `MockChatModel` for agent testing
 - Comprehensive edge case coverage
 - Real-world scenario tests with descriptive view names
 
@@ -693,7 +693,7 @@ SELECT * FROM temp JOIN schema3.table2 ON temp.id = table2.id
 - Built-in support for Anthropic Claude with function calling
 - `@Tool` annotation simplifies tool registration
 - AiServices abstracts LLM orchestration
-- Supports both production and test ChatLanguageModel implementations
+- Supports both production and test ChatModel implementations
 
 ---
 
