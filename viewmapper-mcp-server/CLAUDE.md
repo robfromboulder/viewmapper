@@ -484,7 +484,7 @@ print(f"DEBUG: Enhanced prompt: {enhanced_prompt}", file=sys.stderr)
 
 **Copyright Headers:**
 ```python
-# © 2024-2025 Rob Dickinson (robfromboulder)
+# © 2024-2026 Rob Dickinson (robfromboulder)
 ```
 
 **Type Hints:**

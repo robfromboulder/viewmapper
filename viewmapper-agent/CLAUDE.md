@@ -611,7 +611,7 @@ System.out.println("Subgraph: " + subgraph);
 
 **Copyright Headers:**
 ```java
-// © 2024-2025 Rob Dickinson (robfromboulder)
+// © 2024-2026 Rob Dickinson (robfromboulder)
 ```
 
 **Javadoc:**

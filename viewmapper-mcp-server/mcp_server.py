@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# © 2024-2025 Rob Dickinson (robfromboulder)
+# © 2024-2026 Rob Dickinson (robfromboulder)
 
 """
 ViewMapper MCP Server

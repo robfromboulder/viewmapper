@@ -242,7 +242,7 @@ Update the schema in list_tools()
 
 **Copyright Header:**
 ```java
-// © 2024-2025 Rob Dickinson (robfromboulder)
+// © 2024-2026 Rob Dickinson (robfromboulder)
 ```
 
 **Documentation:**
@@ -273,7 +273,7 @@ After Claude generates code, use IntelliJ to:
 
 **Copyright Header:**
 ```python
-# © 2024-2025 Rob Dickinson (robfromboulder)
+# © 2024-2026 Rob Dickinson (robfromboulder)
 ```
 
 **Documentation:**

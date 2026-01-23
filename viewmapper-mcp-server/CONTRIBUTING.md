@@ -10,7 +10,7 @@ Our code style is whatever IntelliJ IDEA does by default, with the exception of 
 
 All source files should use this copyright statement: (followed by a blank line)
 ```
-© 2024-2025 Rob Dickinson (robfromboulder)
+© 2024-2026 Rob Dickinson (robfromboulder)
 ```
 
 ## Applying Security Updates
