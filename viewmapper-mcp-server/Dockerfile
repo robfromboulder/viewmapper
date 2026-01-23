@@ -5,7 +5,7 @@ FROM ubuntu:jammy
 COPY mcp_server.py pyproject.toml README.md viewmapper-479.jar /tmp/runtime/
 
 ARG VERSION
-FROM ubuntu:jammy-20251001
+FROM ubuntu:jammy-20260109
 ARG VERSION
 ENV CONTAINER_VERSION=$VERSION
 

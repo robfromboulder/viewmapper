@@ -17,12 +17,12 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <!-- Dependency Versions -->
-        <assertj.version>3.25.1</assertj.version>
-        <jackson.version>2.16.1</jackson.version>
+        <assertj.version>3.27.6</assertj.version>
+        <jackson.version>2.20.1</jackson.version>
         <jgrapht.version>1.5.2</jgrapht.version>
         <junit.version>5.10.1</junit.version>
         <langchain4j.version>0.35.0</langchain4j.version>
-        <picocli.version>4.7.5</picocli.version>
+        <picocli.version>4.7.7</picocli.version>
         <trino.version>479</trino.version>
     </properties>
 
