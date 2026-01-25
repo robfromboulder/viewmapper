@@ -53,7 +53,7 @@ public class RunCommand implements Callable<Integer> {
             if (connection.startsWith("test://")) {
                 String datasetName = connection.substring(7);
                 loadFromFile(analyzer, datasetName);
-                provider = new TestDatasetDiscoveryProvider();
+                provider = new TestDatasetDiscoveryProvider(datasetName);
             } else if (connection.startsWith("jdbc:trino://")) {
                 if (schema == null || schema.trim().isEmpty())
                     throw new IllegalArgumentException("--schema parameter is required for JDBC connections\nExamples:\n  --connection jdbc:trino://host:8080?user=youruser --schema viewzoo.analytics (recommended: multi-catalog)\n  --connection jdbc:trino://host:8080/catalog?user=youruser --schema analytics (advanced: single catalog)");

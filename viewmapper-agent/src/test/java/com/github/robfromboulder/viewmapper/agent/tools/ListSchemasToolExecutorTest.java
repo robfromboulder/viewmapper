@@ -20,19 +20,14 @@ class ListSchemasToolExecutorTest {
 
     @BeforeEach
     void setUp() {
-        TestDatasetDiscoveryProvider provider = new TestDatasetDiscoveryProvider();
+        TestDatasetDiscoveryProvider provider = new TestDatasetDiscoveryProvider("simple_ecommerce");
         executor = new ListSchemasToolExecutor(provider);
     }
 
     @Test
     void testListSchemasWithTestCatalog() {
         List<String> schemas = executor.listSchemas("test");
-        assertThat(schemas).containsExactlyInAnyOrder(
-                "simple_ecommerce",
-                "moderate_analytics",
-                "complex_enterprise",
-                "realistic_bi_warehouse"
-        );
+        assertThat(schemas).containsExactly("simple_ecommerce");
     }
 
     @Test

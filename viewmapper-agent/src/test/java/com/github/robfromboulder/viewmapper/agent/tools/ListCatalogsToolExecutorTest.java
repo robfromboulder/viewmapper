@@ -19,7 +19,7 @@ class ListCatalogsToolExecutorTest {
 
     @BeforeEach
     void setUp() {
-        TestDatasetDiscoveryProvider provider = new TestDatasetDiscoveryProvider();
+        TestDatasetDiscoveryProvider provider = new TestDatasetDiscoveryProvider("simple_ecommerce");
         executor = new ListCatalogsToolExecutor(provider);
     }
 

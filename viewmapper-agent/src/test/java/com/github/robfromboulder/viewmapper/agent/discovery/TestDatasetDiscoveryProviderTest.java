@@ -19,7 +19,21 @@ class TestDatasetDiscoveryProviderTest {
 
     @BeforeEach
     void setUp() {
-        provider = new TestDatasetDiscoveryProvider();
+        provider = new TestDatasetDiscoveryProvider("simple_ecommerce");
+    }
+
+    @Test
+    void testConstructorWithNullDatasetThrowsException() {
+        assertThatThrownBy(() -> new TestDatasetDiscoveryProvider(null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Loaded dataset name required");
+    }
+
+    @Test
+    void testConstructorWithEmptyDatasetThrowsException() {
+        assertThatThrownBy(() -> new TestDatasetDiscoveryProvider(""))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Loaded dataset name required");
     }
 
     @Test
@@ -29,14 +43,16 @@ class TestDatasetDiscoveryProviderTest {
     }
 
     @Test
-    void testListSchemasReturnsAllDatasets() {
+    void testListSchemasReturnsLoadedDataset() {
         List<String> schemas = provider.listSchemas("test");
-        assertThat(schemas).containsExactlyInAnyOrder(
-                "simple_ecommerce",
-                "moderate_analytics",
-                "complex_enterprise",
-                "realistic_bi_warehouse"
-        );
+        assertThat(schemas).containsExactly("simple_ecommerce");
+    }
+
+    @Test
+    void testListSchemasReturnsDifferentLoadedDataset() {
+        TestDatasetDiscoveryProvider otherProvider = new TestDatasetDiscoveryProvider("complex_enterprise");
+        List<String> schemas = otherProvider.listSchemas("test");
+        assertThat(schemas).containsExactly("complex_enterprise");
     }
 
     @Test

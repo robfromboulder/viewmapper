@@ -18,10 +18,10 @@ import java.util.List;
  * List<String> catalogs = provider.listCatalogs();
  * List<String> schemas = provider.listSchemas("viewzoo");
  *
- * // For test datasets
- * DiscoveryProvider provider = new TestDatasetDiscoveryProvider();
+ * // For test datasets (provider returns only the loaded dataset as schema)
+ * DiscoveryProvider provider = new TestDatasetDiscoveryProvider("simple_ecommerce");
  * List<String> catalogs = provider.listCatalogs();  // Returns ["test"]
- * List<String> schemas = provider.listSchemas("test");  // Returns dataset names
+ * List<String> schemas = provider.listSchemas("test");  // Returns ["simple_ecommerce"]
  * }</pre>
  */
 public interface DiscoveryProvider {
