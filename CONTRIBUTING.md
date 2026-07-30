@@ -1,14 +1,5 @@
 # Contributing to ViewMapper
 
-## Built with Claude Code
-
-ViewMapper is developed and maintained exclusively with [Claude Code](https://claude.ai/code), Anthropic's official CLI for Claude. All code contributions must be made through Claude Code sessions to maintain consistency with the architecture-first development model and keep context files synchronized.
-
-If you haven't used Claude Code yet, these resources are super helpful:
-* https://code.claude.com/docs
-* https://www.anthropic.com/engineering/claude-code-best-practices
-* https://www.siddharthbharath.com/claude-code-the-complete-guide/
-
 ## Architecture-First Development
 
 **Important:** Changes to this project should follow an architecture-first workflow:
