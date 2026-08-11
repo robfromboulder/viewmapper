@@ -131,11 +131,3 @@ The MCP server maintains conversation history automatically. If conversations ar
 1. Verify multiple messages are being sent in same chat window
 2. Check Claude Desktop logs for errors
 3. Rebuild Docker image if you've made recent changes
-
-## Additional Documentation
-
-- **../ARCHITECTURE.md** - Overall project architecture and design decisions
-- **../viewmapper-agent/README.md** - ViewMapper agent usage and test datasets
-- **CLAUDE.md** - AI assistant context and development guidelines
-- **TESTING.md** - Comprehensive testing procedures and scenarios
-- **MCP Documentation** - https://modelcontextprotocol.io/

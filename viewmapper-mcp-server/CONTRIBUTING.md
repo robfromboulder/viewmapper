@@ -2,7 +2,7 @@
 
 ## Coding Conventions
 
-Our code style is whatever IntelliJ IDEA does by default, with the exception of allowing lines up to 130 characters. If you don't use IDEA, that's ok, but your code may get reformatted later.
+Our code style follows PEP 8 with Black formatting (line length ~88). Type hints on all function parameters and returns.
 
 All source files should use this copyright statement: (followed by a blank line)
 ```

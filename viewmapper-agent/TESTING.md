@@ -1,4 +1,4 @@
-# TESTING.md
+# Testing Instructions for ViewMapper-Agent
 
 ViewMapper categorizes all schemas into four complexity levels:
 

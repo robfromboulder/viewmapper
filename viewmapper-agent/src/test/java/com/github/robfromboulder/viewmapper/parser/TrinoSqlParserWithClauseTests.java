@@ -243,7 +243,7 @@ class TrinoSqlParserWithClauseTests {
 
     @Test
     void testComplexRealWorldExample() {
-        // This is the example from ARCHITECTURE.md
+        // the string literal names a table that does not exist, which is what a regex reading would wrongly report
         String sql = """
                 WITH temp AS (
                     SELECT * FROM schema1.table1

@@ -218,9 +218,3 @@ java -jar target/viewmapper-479.jar run --connection "test://complex_enterprise"
 - This is expected behavior for some schemas
 - ViewMapper handles cycles gracefully using DefaultDirectedGraph
 - Circular dependencies indicate potential schema design issues
-
-## Additional Documentation
-
-- **../ARCHITECTURE.md** - Overall project architecture and design decisions
-- **CLAUDE.md** - AI assistant context and development guidelines
-- **TESTING.md** - Comprehensive testing scenarios and examples
