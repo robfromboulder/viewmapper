@@ -1,4 +1,4 @@
-# Testing Instructions for ViewMapper-MCP-Server
+# Testing instructions for viewmapper-mcp-server
 
 ## Claude Desktop Configuration
 

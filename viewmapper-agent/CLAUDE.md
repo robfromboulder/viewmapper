@@ -1,4 +1,4 @@
-# Claude Instructions for ViewMapper-Agent
+# Claude instructions for viewmapper-agent
 
 The analytical half of ViewMapper: Trino connectivity, SQL parsing, dependency graph construction and analysis, and the reasoning loop that decides what to show.
 

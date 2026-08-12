@@ -1,4 +1,4 @@
-# Claude Instructions for ViewMapper-MCP-Server
+# Claude instructions for viewmapper-mcp-server
 
 The conversational half of ViewMapper: MCP protocol handling, conversation context across turns, subprocess execution of the Java agent, and output delivered so Claude Desktop renders it.
 
