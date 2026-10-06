@@ -1,13 +1,20 @@
-# ViewMapper
-This Claude-based agent helps you discover and map relationships between Trino views, even for schemas with hundreds of views or deeply nested hierarchies.
-You can use this agent from the command line, from other Java programs, or as an MCP server directly from Claude Desktop.
+<a href="#"><img src=".github/images/hero.svg" width="100%" alt="ViewMapper: a blueprint of a Trino schema. Discover how your Trino views depend upon each other. General usage, simple examples. Inside a dashed parcel line, a dependency graph of eight views reads left to right: two faded upstream views feed one view, which feeds the hub, and the hub feeds two views that share a faded downstream view; the view before the hub also feeds a faded view below it. The checker circles the hub: 'start with the hub'. Sample prompts read: show me a mermaid diagram of all views related to customer_360; analyze the simple_ecommerce schema. Title block: viewmapper, revision 479, scale 500+ views, license Apache 2, dated 2026-10-05, architect robfromboulder, tested with Claude."></a>
 
 [![Claude Code](https://img.shields.io/badge/Built%20with%20Claude%20Code-6366f1?logo=claude&logoColor=white)](https://claude.ai/code)
 [![CodeFactor](https://www.codefactor.io/repository/github/robfromboulder/viewmapper/badge)](https://www.codefactor.io/repository/github/robfromboulder/viewmapper)
 [![Contributing](https://img.shields.io/badge/contributions-welcome-green.svg)](https://github.com/robfromboulder/viewmapper/blob/main/CONTRIBUTING.md)
 [![License](https://img.shields.io/github/license/robfromboulder/viewmapper)](https://github.com/robfromboulder/viewmapper/blob/main/LICENSE)
 
-<img alt="claude_code_example" src="https://github.com/user-attachments/assets/8356e721-6926-4083-86d4-d1ea2bcdf642" />
+This Claude-based agent helps you discover and map relationships between Trino views, even for schemas with hundreds of views or deeply nested hierarchies. You can use this agent from the command line, from other Java programs, or as an MCP server directly from Claude Desktop.
+
+Contents:
+
+* [Dependencies](#dependencies)
+* [Mapping View Hierarchies](#mapping-view-hierarchies)
+* [Configuring Claude Desktop](#configuring-claude-desktop)
+* [Limitations](#limitations)
+* [Troubleshooting](#troubleshooting)
+* [Contributing](CONTRIBUTING.md)
 
 > [!NOTE]
 > This project is not officially endorsed or supported by Starburst.
@@ -25,6 +32,7 @@ You can use this agent from the command line, from other Java programs, or as an
 ## Mapping View Hierarchies
 
 Let's say you have a simple Trino view hierarchy like this:
+
 ```sql
 create or replace view viewzoo.example.a as select 1 as total
 create or replace view viewzoo.example.b as select * from viewzoo.example.a
@@ -32,13 +40,12 @@ create or replace view viewzoo.example.c as select * from viewzoo.example.b
 create or replace view viewzoo.example.d as select * from viewzoo.example.b
 ```
 
-Even this simple example requires some careful reading to understand. As we start building more complex hierarchies, it becomes more difficult to track
-relationships between views. Traditional ERD tools focus on foreign key relationships between tables, but because view hierarchies don't use foreign
-keys, these SQL-level dependencies aren't visualized by most ERD tools. ☹️
+Even this simple example requires some careful reading to understand. As we start building more complex hierarchies, it becomes more difficult to track relationships between views. Traditional ERD tools focus on foreign key relationships between tables, but because view hierarchies don't use foreign keys, these SQL-level dependencies aren't visualized by most ERD tools. ☹️
 
-ViewMapper solves this by using the Trino SQL parser to extract and map these view-to-view dependencies, creating an accurate graph of relationships even for
-views with multiple JOIN, UNION, or WITH clauses. If your schema is small, like the example above, it can generate a diagram in one shot.
+ViewMapper solves this by using the Trino SQL parser to extract and map these view-to-view dependencies, creating an accurate graph of relationships even for views with multiple JOIN, UNION, or WITH clauses. If your schema is small, like the example above, it can generate a diagram in one shot.
+
 > Please generate a mermaid diagram file for the viewzoo.example schema
+
 ```mermaid
 graph TB
     node1["example.a"]
@@ -52,7 +59,9 @@ graph TB
 ```
 
 For larger schemas, you can ask ViewMapper to focus on relationships around a specific view.
+
 > Please generate a mermaid diagram file for the viewzoo.ecommerce schema, focusing on customer_360, and use short view names for better readability
+
 ```mermaid
 graph TB
     node1["customer_segments"]
@@ -89,8 +98,8 @@ graph TB
     style node9 fill:#6366f1,stroke:#1976D2
 ```
 
-For very large or complex schemas, ViewMapper will (intelligently) refuse to show all views in a single (unreadable) diagram
-and will suggest views to focus upon instead:
+For very large or complex schemas, ViewMapper will (intelligently) refuse to show all views in a single (unreadable) diagram and will suggest views to focus upon instead:
+
 * **high-impact views** (with highest number of dependencies)
 * **central-hub views** (with highest centrality among consumers)
 * **leaf views** (final views with no dependents)
@@ -104,6 +113,7 @@ and will suggest views to focus upon instead:
 ### 3. Edit `claude_desktop_config.json` and add a new server
 
 **For connecting to a remote Trino server:**
+
 ```json
   "mcpServers": {
     "viewmapper-mcp-server": {
@@ -119,6 +129,7 @@ and will suggest views to focus upon instead:
 ```
 
 **For connecting to Trino running on your local machine:**
+
 ```json
   "mcpServers": {
     "viewmapper-mcp-server": {
@@ -150,6 +161,7 @@ and will suggest views to focus upon instead:
 ```
 
 **For testing with predefined sample data:**
+
 ```json
   "mcpServers": {
     "viewmapper-mcp-server": {
@@ -174,8 +186,7 @@ and will suggest views to focus upon instead:
 ### 4. Restart Claude Desktop or click **Developer | Reload MCP Configuration**
 
 > [!TIP]
-> A single named MCP server container (with a unique name) will be launched by Claude Desktop, and terminated when Claude Desktop shuts down.
-> You should never have to start or stop the MCP server manually.
+> A single named MCP server container (with a unique name) will be launched by Claude Desktop, and terminated when Claude Desktop shuts down. You should never have to start or stop the MCP server manually.
 
 ### 5. Verify the MCP server is running properly
 
@@ -191,6 +202,8 @@ and will suggest views to focus upon instead:
 * Show me a mermaid diagram file of the entire viewzoo.example schema
 * Show me a mermaid diagram file of all viewzoo.example views related to 'customer_360'
 * Show me a mermaid diagram file from 3 levels upstream and 2 levels downstream from 'cust_summary'
+
+<img alt="claude_code_example" src="https://github.com/user-attachments/assets/8356e721-6926-4083-86d4-d1ea2bcdf642" />
 
 ## Limitations
 
