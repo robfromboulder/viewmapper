@@ -91,10 +91,11 @@ public class GenerateMermaidToolExecutor {
     @Tool("Generates Mermaid diagram of the subgraph around a view, within specified depths. "
             + "Use for MODERATE/COMPLEX schemas once a focus view is chosen.")
     public String generateMermaid(
-            @P("View to focus on, at the center of the subgraph") String focusView,
-            @P("Levels of dependencies to include") int depthUpstream,
-            @P("Levels of dependents to include") int depthDownstream,
-            @P(value = "Maximum views to draw (default 50, at most 100)", required = false) Integer maxNodes) {
+            @P(ExtractSubgraphToolExecutor.FOCUS_VIEW_DESCRIPTION) String focusView,
+            @P(ExtractSubgraphToolExecutor.DEPTH_UPSTREAM_DESCRIPTION) int depthUpstream,
+            @P(ExtractSubgraphToolExecutor.DEPTH_DOWNSTREAM_DESCRIPTION) int depthDownstream,
+            @P(value = "Maximum views to draw (default " + ExtractSubgraphToolExecutor.DEFAULT_MAX_NODES
+                    + ", at most " + MAX_DIAGRAM_VIEWS + ")", required = false) Integer maxNodes) {
         if (maxNodes != null && (maxNodes <= 0 || maxNodes > MAX_DIAGRAM_VIEWS)) maxNodes = MAX_DIAGRAM_VIEWS;
         SubgraphResult subgraph = extractor.extractSubgraph(focusView, depthUpstream, depthDownstream, maxNodes);
         String mermaid = renderSubgraph(subgraph);
