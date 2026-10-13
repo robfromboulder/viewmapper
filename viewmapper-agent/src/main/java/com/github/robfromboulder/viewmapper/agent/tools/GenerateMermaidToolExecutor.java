@@ -22,12 +22,14 @@ import java.util.Set;
 public class GenerateMermaidToolExecutor {
 
     private final DependencyAnalyzer analyzer;
+    private final ExtractSubgraphToolExecutor extractor;
 
     /**
      * Default constructor.
      */
     public GenerateMermaidToolExecutor(DependencyAnalyzer analyzer) {
         this.analyzer = Objects.requireNonNull(analyzer, "Analyzer cannot be null");
+        this.extractor = new ExtractSubgraphToolExecutor(analyzer);
     }
 
     /**
@@ -74,7 +76,24 @@ public class GenerateMermaidToolExecutor {
     }
 
     /**
-     * Generates a Mermaid diagram from a subgraph result.
+     * Generates a Mermaid diagram of the subgraph around a view.
+     * <p>
+     * Takes the same arguments as extractSubgraph rather than a subgraph, because the model can only pass JSON values,
+     * and a subgraph copied through the model could be altered on the way back.
+     *
+     * @param focusView       The view to focus on (center of the subgraph)
+     * @param depthUpstream   How many levels of dependencies to include (incoming edges)
+     * @param depthDownstream How many levels of dependents to include (outgoing edges)
+     * @param maxNodes        Maximum nodes in result (0 = unlimited, default = 50 for readability)
+     * @return Mermaid diagram syntax
+     */
+    @Tool("Generates Mermaid diagram of the subgraph around a view, within specified depths. Use for MODERATE/COMPLEX schemas once a focus view is chosen.")
+    public String generateMermaid(String focusView, int depthUpstream, int depthDownstream, Integer maxNodes) {
+        return renderSubgraph(extractor.extractSubgraph(focusView, depthUpstream, depthDownstream, maxNodes));
+    }
+
+    /**
+     * Renders a subgraph as a Mermaid diagram.
      * <p>
      * Applies styling rules:
      * - Focus view: Red/bold border
@@ -84,8 +103,7 @@ public class GenerateMermaidToolExecutor {
      * @param subgraph The subgraph to visualize
      * @return Mermaid diagram syntax
      */
-    @Tool("Generates Mermaid diagram from subgraph. Use after extracting subgraph to create visualization for MODERATE/COMPLEX schemas.")
-    public String generateMermaid(SubgraphResult subgraph) {
+    public String renderSubgraph(SubgraphResult subgraph) {
         Objects.requireNonNull(subgraph, "Subgraph cannot be null");
         if (subgraph.getViewCount() == 0)
             return "graph TB\n    empty[No views in subgraph]";

@@ -152,16 +152,15 @@ public class ViewMapperAgent {
                    - If not SIMPLE: Explain why entry point is needed, suggest options
                 
                 4. When user selects a focus view:
-                   - Call extractSubgraph with appropriate depth
-                   - Call generateMermaid with the subgraph result
+                   - Call generateMermaid with the focus view and appropriate depth
                    - Return the diagram output directly
                 
                 TOOL USAGE RULES:
                 - analyzeSchema: ALWAYS call this FIRST
                 - generateFullSchemaDiagram: Call for SIMPLE schemas when diagram requested (no parameters)
                 - suggestEntryPoints: Call for non-SIMPLE schemas
-                - extractSubgraph: Call after user selects focus view
-                - generateMermaid: Call with subgraph result for non-SIMPLE schemas
+                - extractSubgraph: Call to list the views around a focus view without drawing them
+                - generateMermaid: Call with focus view and depths for non-SIMPLE schemas
                 
                 RESPONSE REQUIREMENTS:
                 - When a tool returns a Mermaid diagram (starts with ```mermaid), include it in your response
