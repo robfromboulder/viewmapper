@@ -107,6 +107,20 @@ class TrinoSqlParserTableFunctionTests {
     }
 
     @Test
+    void testQualifiedTableArgumentMatchingCteName() {
+        String sql = """
+                WITH orders AS (SELECT * FROM staging.orders WHERE status = 'open')
+                SELECT *
+                FROM TABLE(exclude_columns(
+                    input => TABLE(sales.orders),
+                    columns => DESCRIPTOR(comment)))
+                """;
+
+        Set<TableReference> dependencies = parser.extractDependencies(sql);
+        assertThat(getFullyQualifiedNames(dependencies)).containsExactlyInAnyOrder("staging.orders", "sales.orders");
+    }
+
+    @Test
     void testTableFunctionJoinedWithTable() {
         String sql = """
                 SELECT *

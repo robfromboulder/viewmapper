@@ -413,6 +413,43 @@ class TrinoSqlParserEdgeTests {
         assertThat(getTableNames(dependencies)).containsExactlyInAnyOrder("sales", "regions");
     }
 
+    @Test
+    void testSubqueryInOrderBy() {
+        String sql = """
+                SELECT *
+                FROM orders
+                ORDER BY (SELECT max(rank) FROM priorities)
+                """;
+
+        Set<TableReference> dependencies = parser.extractDependencies(sql);
+        assertThat(getTableNames(dependencies)).containsExactlyInAnyOrder("orders", "priorities");
+    }
+
+    @Test
+    void testSubqueryInOrderByAfterUnion() {
+        String sql = """
+                SELECT id FROM orders
+                UNION
+                SELECT id FROM returns
+                ORDER BY (SELECT max(rank) FROM priorities)
+                """;
+
+        Set<TableReference> dependencies = parser.extractDependencies(sql);
+        assertThat(getTableNames(dependencies)).containsExactlyInAnyOrder("orders", "returns", "priorities");
+    }
+
+    @Test
+    void testSubqueryInWindowClause() {
+        String sql = """
+                SELECT name, rank() OVER w AS dept_rank
+                FROM employees
+                WINDOW w AS (PARTITION BY department ORDER BY (SELECT max(level) FROM grades))
+                """;
+
+        Set<TableReference> dependencies = parser.extractDependencies(sql);
+        assertThat(getTableNames(dependencies)).containsExactlyInAnyOrder("employees", "grades");
+    }
+
     // Helper methods
 
     private Set<String> getTableNames(Set<TableReference> references) {
