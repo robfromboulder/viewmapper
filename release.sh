@@ -33,12 +33,12 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Validate version format (must be 479 followed by a letter)
+# Validate version format (must be 483 followed by a letter)
 validate_version() {
     local version=$1
-    if [[ ! "$version" =~ ^479[a-z]$ ]]; then
+    if [[ ! "$version" =~ ^483[a-z]$ ]]; then
         log_error "Invalid version format: $version"
-        echo "Version must be 479 followed by a single lowercase letter (e.g., 479a, 479b, 479c)"
+        echo "Version must be 483 followed by a single lowercase letter (e.g., 483a, 483b, 483c)"
         exit 1
     fi
 }
@@ -146,20 +146,20 @@ push_to_dockerhub() {
 # Create and push git tag
 create_git_tag() {
     local version=$1
-    log_info "Creating git tag v${version}..."
+    log_info "Creating git tag ${version}..."
 
-    if git rev-parse "v${version}" &> /dev/null; then
-        log_error "Tag v${version} already exists"
-        echo "Use 'git tag -d v${version}' to delete the existing tag if needed"
+    if git rev-parse -q --verify "refs/tags/${version}" &> /dev/null; then
+        log_error "Tag ${version} already exists"
+        echo "Use 'git tag -d ${version}' to delete the existing tag if needed"
         exit 1
     fi
 
-    git tag -a "v${version}" -m "Release version ${version}"
-    log_success "Created git tag v${version}"
+    git tag -a "${version}" -m "Release version ${version}"
+    log_success "Created git tag ${version}"
 
     log_info "Pushing tag to origin..."
-    if git push origin "v${version}"; then
-        log_success "Pushed tag v${version} to origin"
+    if git push origin "refs/tags/${version}"; then
+        log_success "Pushed tag ${version} to origin"
     else
         log_error "Failed to push tag to origin"
         exit 1
@@ -176,7 +176,7 @@ display_summary() {
     echo ""
     echo "Released artifacts:"
     echo "  - Docker image: ${DOCKERHUB_REPO}:${version}"
-    echo "  - Git tag: v${version}"
+    echo "  - Git tag: ${version}"
     echo ""
     echo "Platforms:"
     echo "  - linux/amd64"
@@ -194,7 +194,7 @@ main() {
     if [ $# -ne 1 ]; then
         log_error "Missing version parameter"
         echo "Usage: $0 <version>"
-        echo "Example: $0 479a"
+        echo "Example: $0 483a"
         exit 1
     fi
 

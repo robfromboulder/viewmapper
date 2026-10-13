@@ -36,14 +36,14 @@ Three scripts at the repo root drive the whole build. They span both modules, wh
 | Build the agent JAR, copy it to the MCP server, build the local Docker image | `./build.sh` |
 | Clean, build, push a multi-platform image to DockerHub, tag the release | `./release.sh <version>` |
 
-`./release.sh` takes a version of the form `479` + a lowercase letter, refuses to run with a dirty working tree, and pushes a git tag — expect an approval prompt on the push. Local builds use the bare version `479` and never leave the machine.
+`./release.sh` takes a version of the form `483` + a lowercase letter, refuses to run with a dirty working tree, and pushes a git tag — expect an approval prompt on the push. Local builds use the bare version `483` and never leave the machine.
 
 Manual build, when a step needs diagnosing on its own:
 
 ```bash
 cd viewmapper-agent && mvn clean package
-cd ../viewmapper-mcp-server && cp ../viewmapper-agent/target/viewmapper-479.jar .
-docker image rm -f viewmapper:479 && docker build --no-cache -t viewmapper:479 .
+cd ../viewmapper-mcp-server && cp ../viewmapper-agent/target/viewmapper-483.jar .
+docker image rm -f viewmapper:483 && docker build --no-cache -t viewmapper:483 .
 ```
 
 Each module's own `TESTING.md` holds the scenarios for exercising a local build by hand — CLI prompts for the agent, Claude Desktop configuration and queries for the MCP server. The commands that run a module's automated tests are in that module's `CLAUDE.md`.

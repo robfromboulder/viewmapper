@@ -10,7 +10,7 @@ import picocli.CommandLine.Command;
  */
 @Command(
         name = "viewmapper",
-        version = "ViewMapper 479",
+        version = "ViewMapper 483",
         description = "Dependency mapping agent for Trino views",
         mixinStandardHelpOptions = true,
         subcommands = {RunCommand.class}

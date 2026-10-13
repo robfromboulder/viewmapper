@@ -5,7 +5,6 @@ package com.github.robfromboulder.viewmapper.parser;
 import io.trino.sql.tree.AliasedRelation;
 import io.trino.sql.tree.DefaultTraversalVisitor;
 import io.trino.sql.tree.ExistsPredicate;
-import io.trino.sql.tree.InPredicate;
 import io.trino.sql.tree.Join;
 import io.trino.sql.tree.QualifiedName;
 import io.trino.sql.tree.Query;
@@ -15,6 +14,7 @@ import io.trino.sql.tree.SelectItem;
 import io.trino.sql.tree.SetOperation;
 import io.trino.sql.tree.SubqueryExpression;
 import io.trino.sql.tree.Table;
+import io.trino.sql.tree.TableFunctionTableArgument;
 import io.trino.sql.tree.TableSubquery;
 import io.trino.sql.tree.Unnest;
 import io.trino.sql.tree.With;
@@ -32,6 +32,7 @@ import java.util.Set;
  * - Subqueries
  * - CTEs (WITH clauses) - excluding them from dependencies
  * - UNNEST operations
+ * - TABLE(...) arguments to table functions
  * - Quoted identifiers
  * <p>
  * It does NOT extract:
@@ -68,16 +69,6 @@ public class DependencyExtractor extends DefaultTraversalVisitor<Void> {
     @Override
     protected Void visitExists(ExistsPredicate node, Void context) {
         return process(node.getSubquery(), context);
-    }
-
-    /**
-     * Visits an IN predicate that might contain a subquery.
-     */
-    @Override
-    protected Void visitInPredicate(InPredicate node, Void context) {
-        process(node.getValue(), context);
-        process(node.getValueList(), context);
-        return null;
     }
 
     /**
@@ -164,6 +155,18 @@ public class DependencyExtractor extends DefaultTraversalVisitor<Void> {
         }
 
         return super.visitTable(node, context);
+    }
+
+    /**
+     * Visits a TABLE(...) argument to a table function, such as exclude_columns.
+     * The superclass treats it as a leaf, which would drop the table it names.
+     */
+    @Override
+    protected Void visitTableArgument(TableFunctionTableArgument node, Void context) {
+        process(node.getTable(), context);
+        node.getPartitionBy().ifPresent(expressions -> expressions.forEach(expression -> process(expression, context)));
+        node.getOrderBy().ifPresent(orderBy -> process(orderBy, context));
+        return null;
     }
 
     /**

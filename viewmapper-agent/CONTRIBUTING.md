@@ -54,5 +54,5 @@ To create your own test data file:
 
 5. **Test your file:**
    ```bash
-   mvn package && java -jar target/viewmapper-479.jar run --connection "test://your_file" "Analyze this schema"
+   mvn package && java -jar target/viewmapper-483.jar run --connection "test://your_file" "Analyze this schema"
    ```

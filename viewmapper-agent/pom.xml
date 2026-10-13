@@ -6,7 +6,7 @@
 
     <groupId>com.github.robfromboulder</groupId>
     <artifactId>viewmapper</artifactId>
-    <version>479</version>
+    <version>483</version>
     <name>ViewMapper</name>
     <description>Intelligent Trino schema exploration tool with LLM agent</description>
     <url>https://github.com/robfromboulder/viewmapper</url>
@@ -23,7 +23,7 @@
         <junit.version>5.10.1</junit.version>
         <langchain4j.version>1.10.0</langchain4j.version>
         <picocli.version>4.7.7</picocli.version>
-        <trino.version>479</trino.version>
+        <trino.version>483</trino.version>
     </properties>
 
     <build>
