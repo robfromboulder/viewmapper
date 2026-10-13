@@ -9,6 +9,8 @@ actual Java CLI execution.
 
 import asyncio
 import os
+import subprocess
+import sys
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -238,3 +240,19 @@ class TestToolExecution:
         assert "Previous conversation:" in prompt
         assert "First question" in prompt
 
+
+class TestConfiguration:
+    """Test configuration read from the environment at startup."""
+
+    @pytest.mark.parametrize("value", ["5m", "", "-1", "0"])
+    def test_invalid_timeout_fails_at_startup(self, value):
+        """A malformed timeout stops the server with a message naming the variable."""
+        result = subprocess.run(
+            [sys.executable, "-c", "import mcp_server"],
+            capture_output=True,
+            text=True,
+            env={**os.environ, "VIEWMAPPER_TIMEOUT_SECONDS": value},
+            cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        )
+        assert result.returncode != 0
+        assert "VIEWMAPPER_TIMEOUT_SECONDS" in result.stderr
