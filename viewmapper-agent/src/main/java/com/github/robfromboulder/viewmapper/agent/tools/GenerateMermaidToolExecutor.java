@@ -81,9 +81,6 @@ public class GenerateMermaidToolExecutor {
 
     /**
      * Generates a Mermaid diagram of the subgraph around a view.
-     * <p>
-     * Takes the same arguments as extractSubgraph rather than a subgraph, because the model can only pass JSON values,
-     * and a subgraph copied through the model could be altered on the way back.
      *
      * @param focusView       The view to focus on (center of the subgraph)
      * @param depthUpstream   How many levels of dependencies to include (incoming edges)
