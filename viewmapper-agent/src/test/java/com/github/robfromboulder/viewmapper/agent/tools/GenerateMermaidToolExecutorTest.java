@@ -201,6 +201,19 @@ class GenerateMermaidToolExecutorTest {
         assertThat(executeTool("generateMermaid", "b", 1, 1, 2)).contains("```mermaid").contains("TRUNCATED");
     }
 
+    @Test
+    void testGenerateMermaidClampsMaxNodes() throws Exception {
+        // focus view with more dependents than a diagram can hold
+        for (int i = 1; i <= 120; i++) {
+            analyzer.addView("view" + i, "SELECT * FROM base");
+        }
+
+        for (int maxNodes : new int[]{0, 500}) {
+            String mermaid = executeTool("generateMermaid", "base", 0, 1, maxNodes);
+            assertThat(mermaid).startsWith("```mermaid").contains("TRUNCATED: diagram shows only 100 views");
+        }
+    }
+
     // Helper methods
 
     private String executeTool(String name, Object... values) throws Exception {
