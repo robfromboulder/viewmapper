@@ -10,7 +10,6 @@ Maintains conversation context across multiple turns for natural schema explorat
 
 import asyncio
 import os
-import subprocess
 
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
@@ -188,25 +187,31 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 
     # Execute Java CLI command
     try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=TIMEOUT_SECONDS,
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
             env={
                 **os.environ,
                 "ANTHROPIC_API_KEY": ANTHROPIC_API_KEY
             }
         )
+        try:
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), TIMEOUT_SECONDS)
+        finally:
+            # On timeout or client cancellation, don't leave the agent running
+            if proc.returncode is None:
+                proc.kill()
+                await proc.wait()
 
-        if result.returncode != 0:
-            error_msg = result.stderr.strip() or "Unknown error"
+        if proc.returncode != 0:
+            error_msg = stderr.decode().strip() or "Unknown error"
             return [TextContent(
                 type="text",
                 text=f"❌ ViewMapper Error:\n{error_msg}"
             )]
 
-        response = result.stdout.strip()
+        response = stdout.decode().strip()
 
         # Update conversation history
         history.append({"role": "user", "content": query})
@@ -216,7 +221,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         # Return response directly (includes any Mermaid diagrams)
         return [TextContent(type="text", text=response)]
 
-    except subprocess.TimeoutExpired:
+    except TimeoutError:
         return [TextContent(
             type="text",
             text=f"⏱️ Request timed out after {TIMEOUT_SECONDS} seconds. Try a simpler query or smaller dataset."
