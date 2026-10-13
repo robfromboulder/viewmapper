@@ -49,8 +49,8 @@ public class GenerateMermaidToolExecutor {
         if (allViews.isEmpty())
             return "graph TB\n    empty[No views in schema]";
         else if (allViews.size() > MAX_DIAGRAM_VIEWS)
-            return String.format("graph TB\n    error[Schema too large: %d views. Use generateMermaid with a focus view instead.]",
-                    allViews.size());
+            return String.format("graph TB\n    error[Schema too large: %d views. "
+                    + "Use generateMermaid with a focus view instead.]", allViews.size());
 
         // start diagram
         StringBuilder mermaid = new StringBuilder();
@@ -91,7 +91,8 @@ public class GenerateMermaidToolExecutor {
      * @param maxNodes        Maximum views to draw (default = 50), clamped to MAX_DIAGRAM_VIEWS
      * @return Mermaid diagram syntax
      */
-    @Tool("Generates Mermaid diagram of the subgraph around a view, within specified depths. Use for MODERATE/COMPLEX schemas once a focus view is chosen.")
+    @Tool("Generates Mermaid diagram of the subgraph around a view, within specified depths. "
+            + "Use for MODERATE/COMPLEX schemas once a focus view is chosen.")
     public String generateMermaid(
             @P("View to focus on, at the center of the subgraph") String focusView,
             @P("Levels of dependencies to include") int depthUpstream,
