@@ -26,7 +26,7 @@ import java.util.Objects;
  */
 public class ViewMapperAgent {
 
-    // LangChain4j defaults to 1024, and thinking tokens count against the limit
+    // LangChain4j defaults to 1024, which truncates long Mermaid diagrams
     static final int MAX_TOKENS = 16000;
 
     private final Assistant assistant;
@@ -68,7 +68,6 @@ public class ViewMapperAgent {
                 .modelName(config.getModelName())
                 .timeout(config.getTimeout())
                 .maxTokens(MAX_TOKENS)
-                .returnThinking(true) // thinking blocks must be sent back with each tool result
                 .build();
 
         List<Object> tools = new ArrayList<>();
