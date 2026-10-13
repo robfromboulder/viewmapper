@@ -27,7 +27,7 @@ class AnthropicConfigTest {
         AnthropicConfig config = AnthropicConfig.builder().apiKey("test-key").build();
         assertThat(config.getApiKey()).isEqualTo("test-key");
         assertThat(config.getModelName()).isEqualTo("claude-sonnet-5-5");
-        assertThat(config.getTimeout()).isEqualTo(Duration.ofSeconds(60));
+        assertThat(config.getTimeout()).isEqualTo(Duration.ofSeconds(180));
     }
 
     @Test

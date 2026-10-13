@@ -44,7 +44,7 @@ No live API calls or Trino connections required for tests. JUnit 5 + AssertJ. Ag
 **Optional:**
 
 - `ANTHROPIC_MODEL` — defaults to `claude-sonnet-5-5`
-- `ANTHROPIC_TIMEOUT_SECONDS` — defaults to 60
+- `ANTHROPIC_TIMEOUT_SECONDS` — per model call, defaults to 180
 
 ## Code Style
 

@@ -13,7 +13,7 @@ import java.util.Objects;
  * <li>ANTHROPIC_API_KEY_FOR_VIEWMAPPER: Agent-specific API key (recommended for production)</li>
  * <li>ANTHROPIC_API_KEY: Generic API key (fallback for development)</li>
  * <li>ANTHROPIC_MODEL: Optional model name (defaults to claude-sonnet-5-5)</li>
- * <li>ANTHROPIC_TIMEOUT_SECONDS: Optional timeout in seconds (defaults to 60)</li>
+ * <li>ANTHROPIC_TIMEOUT_SECONDS: Optional timeout in seconds (defaults to 180)</li>
  * </ul>
  * <p>
  * <b>Production Best Practice:</b> Use ANTHROPIC_API_KEY_FOR_VIEWMAPPER with a dedicated API key.
@@ -25,7 +25,7 @@ import java.util.Objects;
 public class AnthropicConfig {
 
     public static final String DEFAULT_MODEL = "claude-sonnet-5-5";
-    public static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(60);
+    public static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(180);
 
     /**
      * Builder class supporting chained method calls.

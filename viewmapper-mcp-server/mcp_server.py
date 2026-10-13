@@ -41,6 +41,8 @@ if not ANTHROPIC_API_KEY:
 
 CONNECTION = os.getenv("VIEWMAPPER_CONNECTION", "test://simple_ecommerce")
 VERBOSE = os.getenv("VIEWMAPPER_VERBOSE", "").lower() in ("1", "true", "yes")
+# Covers the whole agent run (several model calls), so keep it well above ANTHROPIC_TIMEOUT_SECONDS
+TIMEOUT_SECONDS = int(os.getenv("VIEWMAPPER_TIMEOUT_SECONDS", "300"))
 
 
 def get_session_id() -> str:
@@ -190,7 +192,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             cmd,
             capture_output=True,
             text=True,
-            timeout=60,
+            timeout=TIMEOUT_SECONDS,
             env={
                 **os.environ,
                 "ANTHROPIC_API_KEY": ANTHROPIC_API_KEY
@@ -217,7 +219,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
     except subprocess.TimeoutExpired:
         return [TextContent(
             type="text",
-            text="⏱️ Request timed out after 60 seconds. Try a simpler query or smaller dataset."
+            text=f"⏱️ Request timed out after {TIMEOUT_SECONDS} seconds. Try a simpler query or smaller dataset."
         )]
     except FileNotFoundError:
         return [TextContent(
