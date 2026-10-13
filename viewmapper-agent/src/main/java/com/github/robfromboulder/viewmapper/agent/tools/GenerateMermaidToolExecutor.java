@@ -4,6 +4,7 @@ package com.github.robfromboulder.viewmapper.agent.tools;
 
 import com.github.robfromboulder.viewmapper.agent.types.SubgraphResult;
 import com.github.robfromboulder.viewmapper.parser.DependencyAnalyzer;
+import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.DefaultEdge;
@@ -88,7 +89,11 @@ public class GenerateMermaidToolExecutor {
      * @return Mermaid diagram syntax
      */
     @Tool("Generates Mermaid diagram of the subgraph around a view, within specified depths. Use for MODERATE/COMPLEX schemas once a focus view is chosen.")
-    public String generateMermaid(String focusView, int depthUpstream, int depthDownstream, Integer maxNodes) {
+    public String generateMermaid(
+            @P("View to focus on, at the center of the subgraph") String focusView,
+            @P("Levels of dependencies to include") int depthUpstream,
+            @P("Levels of dependents to include") int depthDownstream,
+            @P(value = "Maximum views to include (0 = unlimited, default 50)", required = false) Integer maxNodes) {
         return renderSubgraph(extractor.extractSubgraph(focusView, depthUpstream, depthDownstream, maxNodes));
     }
 

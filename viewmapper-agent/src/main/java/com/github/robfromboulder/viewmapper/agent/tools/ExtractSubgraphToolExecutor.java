@@ -4,6 +4,7 @@ package com.github.robfromboulder.viewmapper.agent.tools;
 
 import com.github.robfromboulder.viewmapper.agent.types.SubgraphResult;
 import com.github.robfromboulder.viewmapper.parser.DependencyAnalyzer;
+import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 
 import java.util.Objects;
@@ -39,7 +40,11 @@ public class ExtractSubgraphToolExecutor {
      * @return Subgraph result with view list and metadata
      */
     @Tool("Extracts focused subgraph around a view. Returns views within specified depths. Use after selecting entry point.")
-    public SubgraphResult extractSubgraph(String focusView, int depthUpstream, int depthDownstream, Integer maxNodes) {
+    public SubgraphResult extractSubgraph(
+            @P("View to focus on, at the center of the subgraph") String focusView,
+            @P("Levels of dependencies to include") int depthUpstream,
+            @P("Levels of dependents to include") int depthDownstream,
+            @P(value = "Maximum views to include (0 = unlimited, default 50)", required = false) Integer maxNodes) {
         if (!analyzer.containsView(focusView)) throw new IllegalArgumentException(String.format("View '%s' not found in schema", focusView));
         int effectiveMaxNodes = maxNodes != null ? maxNodes : DEFAULT_MAX_NODES;
         Set<String> views = analyzer.findSubgraph(focusView, depthUpstream, depthDownstream, effectiveMaxNodes);

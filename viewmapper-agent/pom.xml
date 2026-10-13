@@ -36,6 +36,8 @@
                 <configuration>
                     <source>25</source>
                     <target>25</target>
+                    <!-- keeps parameter names in tool schemas, which LangChain4j otherwise sends as arg0, arg1, ... -->
+                    <parameters>true</parameters>
                     <annotationProcessorPaths>
                         <path>
                             <groupId>info.picocli</groupId>
