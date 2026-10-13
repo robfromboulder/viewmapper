@@ -41,8 +41,8 @@ if not ANTHROPIC_API_KEY:
 
 CONNECTION = os.getenv("VIEWMAPPER_CONNECTION", "test://simple_ecommerce")
 VERBOSE = os.getenv("VIEWMAPPER_VERBOSE", "").lower() in ("1", "true", "yes")
-# Covers the whole agent run (several model calls), so keep it well above ANTHROPIC_TIMEOUT_SECONDS
-TIMEOUT_SECONDS = int(os.getenv("VIEWMAPPER_TIMEOUT_SECONDS", "300"))
+# Covers the whole agent run, which makes several model calls in sequence, each bounded by ANTHROPIC_TIMEOUT_SECONDS
+TIMEOUT_SECONDS = int(os.getenv("VIEWMAPPER_TIMEOUT_SECONDS", "600"))
 
 
 def get_session_id() -> str:

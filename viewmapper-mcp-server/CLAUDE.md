@@ -37,7 +37,7 @@ No Java, JAR, or API key required for tests. Manual testing requires Claude Desk
 
 - `VIEWMAPPER_CONNECTION` — connection string (default: `test://simple_ecommerce`)
 - `VIEWMAPPER_VERBOSE` — set to `1` for verbose output
-- `VIEWMAPPER_TIMEOUT_SECONDS` — limit for one whole agent run (default: `300`)
+- `VIEWMAPPER_TIMEOUT_SECONDS` — limit for one whole agent run (default: `600`)
 
 ## Code Style
 
