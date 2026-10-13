@@ -48,8 +48,9 @@ public class GenerateMermaidToolExecutor {
         Set<String> allViews = graph.vertexSet();
         if (allViews.isEmpty())
             return "graph TB\n    empty[No views in schema]";
-        else if (allViews.size() > 100)
-            return String.format("graph TB\n    error[Schema too large: %d views. Use extractSubgraph instead.]", allViews.size());
+        else if (allViews.size() > MAX_DIAGRAM_VIEWS)
+            return String.format("graph TB\n    error[Schema too large: %d views. Use generateMermaid with a focus view instead.]",
+                    allViews.size());
 
         // start diagram
         StringBuilder mermaid = new StringBuilder();

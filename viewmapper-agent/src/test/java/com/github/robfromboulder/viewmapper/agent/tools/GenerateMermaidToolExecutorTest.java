@@ -214,6 +214,15 @@ class GenerateMermaidToolExecutorTest {
         }
     }
 
+    @Test
+    void testFullSchemaTooLargePointsToGenerateMermaid() {
+        for (int i = 1; i <= 101; i++) {
+            analyzer.addView("view" + i, "SELECT * FROM base");
+        }
+
+        assertThat(executor.generateFullSchemaDiagram()).contains("Use generateMermaid");
+    }
+
     // Helper methods
 
     private String executeTool(String name, Object... values) throws Exception {
