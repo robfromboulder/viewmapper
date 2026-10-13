@@ -164,6 +164,7 @@ public class ViewMapperAgent {
                 
                 RESPONSE REQUIREMENTS:
                 - When a tool returns a Mermaid diagram (starts with ```mermaid), include it in your response
+                - When a diagram is followed by a TRUNCATED note, tell the user the diagram is incomplete and how to see more
                 - Do NOT summarize or explain the diagram content without showing the actual diagram code
                 - Be concise - let the diagram speak for itself
                 - After showing diagram, you may add brief observations

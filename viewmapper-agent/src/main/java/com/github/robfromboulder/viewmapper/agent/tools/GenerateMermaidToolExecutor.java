@@ -94,7 +94,11 @@ public class GenerateMermaidToolExecutor {
             @P("Levels of dependencies to include") int depthUpstream,
             @P("Levels of dependents to include") int depthDownstream,
             @P(value = "Maximum views to include (0 = unlimited, default 50)", required = false) Integer maxNodes) {
-        return renderSubgraph(extractor.extractSubgraph(focusView, depthUpstream, depthDownstream, maxNodes));
+        SubgraphResult subgraph = extractor.extractSubgraph(focusView, depthUpstream, depthDownstream, maxNodes);
+        String mermaid = renderSubgraph(subgraph);
+        if (!subgraph.isTruncated()) return mermaid;
+        return mermaid + String.format("TRUNCATED: diagram shows only %d views; more exist within these depths. "
+                + "Raise maxNodes or lower the depths to see them.\n", subgraph.getViewCount());
     }
 
     /**

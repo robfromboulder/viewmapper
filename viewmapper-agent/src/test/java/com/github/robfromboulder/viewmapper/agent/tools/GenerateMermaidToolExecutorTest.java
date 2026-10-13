@@ -190,6 +190,17 @@ class GenerateMermaidToolExecutorTest {
         assertThat(mermaid).doesNotContain("\"a\"");
     }
 
+    @Test
+    void testGenerateMermaidReportsTruncation() throws Exception {
+        // a -> b -> c -> d, capped below the views within depth
+        analyzer.addView("b", "SELECT * FROM a");
+        analyzer.addView("c", "SELECT * FROM b");
+        analyzer.addView("d", "SELECT * FROM c");
+
+        assertThat(executeTool("generateMermaid", "b", 1, 1)).doesNotContain("TRUNCATED");
+        assertThat(executeTool("generateMermaid", "b", 1, 1, 2)).contains("```mermaid").contains("TRUNCATED");
+    }
+
     // Helper methods
 
     private String executeTool(String name, Object... values) throws Exception {
