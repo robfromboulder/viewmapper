@@ -2,8 +2,8 @@
 
 package com.github.robfromboulder.viewmapper.agent.tools;
 
+import com.anthropic.helpers.BetaRunnableTool;
 import com.github.robfromboulder.viewmapper.agent.discovery.DiscoveryProvider;
-import dev.langchain4j.agent.tool.Tool;
 
 import java.util.List;
 import java.util.Objects;
@@ -56,9 +56,18 @@ public class ListCatalogsToolExecutor {
      *
      * @return List of catalog names
      */
-    @Tool("Lists all available Trino catalogs. Use this when user asks what catalogs are available or wants to explore their database.")
     public List<String> listCatalogs() {
         return provider.listCatalogs();
+    }
+
+    /**
+     * Returns the tools this executor provides to the model.
+     */
+    public List<BetaRunnableTool> tools() {
+        return List.of(RunnableTools.withoutArguments("listCatalogs",
+                "Lists all available Trino catalogs. "
+                        + "Use this when user asks what catalogs are available or wants to explore their database.",
+                this::listCatalogs));
     }
 
 }

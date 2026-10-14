@@ -32,7 +32,7 @@ java -jar target/viewmapper-483.jar run --connection "jdbc:trino://host:port/cat
 
 **Test datasets:** `simple_ecommerce` (11 views), `moderate_analytics` (35), `complex_enterprise` (154), `realistic_bi_warehouse` (86)
 
-No live API calls or Trino connections required for tests. JUnit 5 + AssertJ. Agent tests use `MockChatModel`.
+No live API calls or Trino connections required for tests. JUnit 5 + AssertJ. Agent tests answer model calls with `FakeMessageService`.
 
 ## Environment Variables
 
@@ -43,6 +43,7 @@ No live API calls or Trino connections required for tests. JUnit 5 + AssertJ. Ag
 
 **Optional:**
 
+- `ANTHROPIC_EFFORT` — `low`, `medium`, `high`, `xhigh` or `max`, defaults to `medium`
 - `ANTHROPIC_MODEL` — defaults to `claude-sonnet-5-5`
 - `ANTHROPIC_TIMEOUT_SECONDS` — per model call, defaults to 180
 
