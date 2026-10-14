@@ -26,8 +26,8 @@ class AnthropicConfigTest {
     void testBuilderWithDefaults() {
         AnthropicConfig config = AnthropicConfig.builder().apiKey("test-key").build();
         assertThat(config.getApiKey()).isEqualTo("test-key");
-        assertThat(config.getModelName()).isEqualTo("claude-3-7-sonnet-20250219");
-        assertThat(config.getTimeout()).isEqualTo(Duration.ofSeconds(60));
+        assertThat(config.getModelName()).isEqualTo("claude-sonnet-5-5");
+        assertThat(config.getTimeout()).isEqualTo(Duration.ofSeconds(180));
     }
 
     @Test
@@ -41,7 +41,7 @@ class AnthropicConfigTest {
         String str = config.toString();
         assertThat(str).doesNotContain("secret-key-12345");
         assertThat(str).contains("***");
-        assertThat(str).contains("claude-3-7-sonnet-20250219");
+        assertThat(str).contains("claude-sonnet-5-5");
     }
 
     @Test

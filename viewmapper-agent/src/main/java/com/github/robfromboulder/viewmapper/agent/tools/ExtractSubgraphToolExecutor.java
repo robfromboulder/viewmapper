@@ -4,6 +4,7 @@ package com.github.robfromboulder.viewmapper.agent.tools;
 
 import com.github.robfromboulder.viewmapper.agent.types.SubgraphResult;
 import com.github.robfromboulder.viewmapper.parser.DependencyAnalyzer;
+import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 
 import java.util.Objects;
@@ -17,6 +18,11 @@ import java.util.Set;
 public class ExtractSubgraphToolExecutor {
 
     public static final int DEFAULT_MAX_NODES = 50; // reasonable for diagram readability
+
+    // shared with generateMermaid, which selects its views the same way
+    public static final String FOCUS_VIEW_DESCRIPTION = "View to focus on, at the center of the subgraph";
+    public static final String DEPTH_UPSTREAM_DESCRIPTION = "Levels of dependencies to include";
+    public static final String DEPTH_DOWNSTREAM_DESCRIPTION = "Levels of dependents to include";
 
     private final DependencyAnalyzer analyzer;
 
@@ -39,7 +45,12 @@ public class ExtractSubgraphToolExecutor {
      * @return Subgraph result with view list and metadata
      */
     @Tool("Extracts focused subgraph around a view. Returns views within specified depths. Use after selecting entry point.")
-    public SubgraphResult extractSubgraph(String focusView, int depthUpstream, int depthDownstream, Integer maxNodes) {
+    public SubgraphResult extractSubgraph(
+            @P(FOCUS_VIEW_DESCRIPTION) String focusView,
+            @P(DEPTH_UPSTREAM_DESCRIPTION) int depthUpstream,
+            @P(DEPTH_DOWNSTREAM_DESCRIPTION) int depthDownstream,
+            @P(value = "Maximum views to include (0 = unlimited, default " + DEFAULT_MAX_NODES + ")", required = false)
+            Integer maxNodes) {
         if (!analyzer.containsView(focusView)) throw new IllegalArgumentException(String.format("View '%s' not found in schema", focusView));
         int effectiveMaxNodes = maxNodes != null ? maxNodes : DEFAULT_MAX_NODES;
         Set<String> views = analyzer.findSubgraph(focusView, depthUpstream, depthDownstream, effectiveMaxNodes);

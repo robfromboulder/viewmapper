@@ -19,13 +19,13 @@ mvn test -Dtest="DependencyAnalyzer*" # Analyzer
 mvn test -Dtest="*Discovery*"         # Discovery
 
 # Run against test dataset
-java -jar target/viewmapper-479.jar run --connection "test://simple_ecommerce" "<prompt>"
+java -jar target/viewmapper-483.jar run --connection "test://simple_ecommerce" "<prompt>"
 
 # Run against live Trino (multi-catalog, recommended)
-java -jar target/viewmapper-479.jar run --connection "jdbc:trino://host:port?user=username" --schema catalog.schema "<prompt>"
+java -jar target/viewmapper-483.jar run --connection "jdbc:trino://host:port?user=username" --schema catalog.schema "<prompt>"
 
 # Run against live Trino (single-catalog)
-java -jar target/viewmapper-479.jar run --connection "jdbc:trino://host:port/catalog?user=username" --schema name "<prompt>"
+java -jar target/viewmapper-483.jar run --connection "jdbc:trino://host:port/catalog?user=username" --schema name "<prompt>"
 ```
 
 **Options:** `--schema <name>` (required for JDBC), `--output text|json` (default: text), `--verbose`
@@ -43,8 +43,8 @@ No live API calls or Trino connections required for tests. JUnit 5 + AssertJ. Ag
 
 **Optional:**
 
-- `ANTHROPIC_MODEL` — defaults to `claude-3-7-sonnet-20250219`
-- `ANTHROPIC_TIMEOUT_SECONDS` — defaults to 60
+- `ANTHROPIC_MODEL` — defaults to `claude-sonnet-5-5`
+- `ANTHROPIC_TIMEOUT_SECONDS` — per model call, defaults to 180
 
 ## Code Style
 

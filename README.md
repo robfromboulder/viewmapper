@@ -1,4 +1,4 @@
-<a href="#"><img src=".github/images/hero.svg" width="100%" alt="ViewMapper: a blueprint of a Trino schema. Discover how your Trino views depend upon each other. General usage, simple examples. Inside a dashed parcel line, a dependency graph of eight views reads left to right: two faded upstream views feed one view, which feeds the hub, and the hub feeds two views that share a faded downstream view; the view before the hub also feeds a faded view below it. The checker circles the hub: 'start with the hub'. Sample prompts read: show me a mermaid diagram of all views related to customer_360; analyze the simple_ecommerce schema. Title block: viewmapper, revision 479, scale 500+ views, license Apache 2, dated 2026-10-05, architect robfromboulder, tested with Claude."></a>
+<a href="#"><img src=".github/images/hero.svg" width="100%" alt="ViewMapper: a blueprint of a Trino schema. Discover how your Trino views depend upon each other. General usage, simple examples. Inside a dashed parcel line, a dependency graph of eight views reads left to right: two faded upstream views feed one view, which feeds the hub, and the hub feeds two views that share a faded downstream view; the view before the hub also feeds a faded view below it. The checker circles the hub: 'start with the hub'. Sample prompts read: show me a mermaid diagram of all views related to customer_360; analyze the simple_ecommerce schema. Title block: viewmapper, revision 483, scale 500+ views, license Apache 2, dated 2026-10-12, architect robfromboulder, tested with Claude."></a>
 
 [![Claude Code](https://img.shields.io/badge/Built%20with%20Claude%20Code-6366f1?logo=claude&logoColor=white)](https://claude.ai/code)
 [![CodeFactor](https://www.codefactor.io/repository/github/robfromboulder/viewmapper/badge)](https://www.codefactor.io/repository/github/robfromboulder/viewmapper)
@@ -122,7 +122,7 @@ For very large or complex schemas, ViewMapper will (intelligently) refuse to sho
         "run", "-i", "--rm",
         "-e", "ANTHROPIC_API_KEY=sk-ant-...",
         "-e", "VIEWMAPPER_CONNECTION=jdbc:trino://trino.example.com:8080?user=youruser",
-        "robfromboulder/viewmapper-mcp-server:479a"
+        "robfromboulder/viewmapper-mcp-server:483a"
       ]
     }
   }
@@ -138,7 +138,7 @@ For very large or complex schemas, ViewMapper will (intelligently) refuse to sho
         "run", "-i", "--rm",
         "-e", "ANTHROPIC_API_KEY=sk-ant-...",
         "-e", "VIEWMAPPER_CONNECTION=jdbc:trino://host.docker.internal:8080?user=youruser",
-        "robfromboulder/viewmapper-mcp-server:479a"
+        "robfromboulder/viewmapper-mcp-server:483a"
       ]
     }
   }
@@ -154,7 +154,7 @@ For very large or complex schemas, ViewMapper will (intelligently) refuse to sho
         "run", "-i", "--rm",
         "-e", "ANTHROPIC_API_KEY=sk-ant-...",
         "-e", "VIEWMAPPER_CONNECTION=jdbc:trino://trino.example.com:8080/catalog?user=youruser",
-        "robfromboulder/viewmapper-mcp-server:479a"
+        "robfromboulder/viewmapper-mcp-server:483a"
       ]
     }
   }
@@ -170,7 +170,7 @@ For very large or complex schemas, ViewMapper will (intelligently) refuse to sho
         "run", "-i", "--rm",
         "-e", "ANTHROPIC_API_KEY=sk-ant-...",
         "-e", "VIEWMAPPER_CONNECTION=test://simple_ecommerce",
-        "robfromboulder/viewmapper-mcp-server:479a"
+        "robfromboulder/viewmapper-mcp-server:483a"
       ]
     }
   }

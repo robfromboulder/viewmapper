@@ -295,6 +295,49 @@ class TrinoSqlParserWithClauseTests {
         assertThat(getTableNames(dependencies)).containsExactlyInAnyOrder("base_table", "another_table");
     }
 
+    @Test
+    void testQualifiedNameIsNeverACTE() {
+        String sql = """
+                WITH orders AS (
+                    SELECT * FROM staging.orders WHERE status = 'open'
+                )
+                SELECT o.id
+                FROM orders o
+                JOIN sales.orders s ON o.id = s.id
+                """;
+
+        Set<TableReference> dependencies = parser.extractDependencies(sql);
+        assertThat(getFullyQualifiedNames(dependencies)).containsExactlyInAnyOrder("staging.orders", "sales.orders");
+    }
+
+    @Test
+    void testCTEBodyReferencesTableOfSameName() {
+        String sql = """
+                WITH orders AS (
+                    SELECT * FROM orders WHERE status = 'open'
+                )
+                SELECT * FROM orders
+                """;
+
+        Set<TableReference> dependencies = parser.extractDependencies(sql);
+        assertThat(getTableNames(dependencies)).containsExactly("orders");
+    }
+
+    @Test
+    void testCTEScopedToSubquery() {
+        String sql = """
+                SELECT *
+                FROM (
+                    WITH orders AS (SELECT 1 AS id)
+                    SELECT id FROM orders
+                ) x
+                JOIN orders o ON x.id = o.id
+                """;
+
+        Set<TableReference> dependencies = parser.extractDependencies(sql);
+        assertThat(getTableNames(dependencies)).containsExactly("orders");
+    }
+
     // Helper methods
 
     private Set<String> getTableNames(Set<TableReference> references) {

@@ -26,6 +26,9 @@ import java.util.Objects;
  */
 public class ViewMapperAgent {
 
+    // LangChain4j defaults to 1024, which truncates long Mermaid diagrams
+    static final int MAX_TOKENS = 16000;
+
     private final Assistant assistant;
 
     /**
@@ -64,6 +67,7 @@ public class ViewMapperAgent {
                 .apiKey(config.getApiKey())
                 .modelName(config.getModelName())
                 .timeout(config.getTimeout())
+                .maxTokens(MAX_TOKENS)
                 .build();
 
         List<Object> tools = new ArrayList<>();
@@ -148,19 +152,19 @@ public class ViewMapperAgent {
                    - If not SIMPLE: Explain why entry point is needed, suggest options
                 
                 4. When user selects a focus view:
-                   - Call extractSubgraph with appropriate depth
-                   - Call generateMermaid with the subgraph result
+                   - Call generateMermaid with the focus view and appropriate depth
                    - Return the diagram output directly
                 
                 TOOL USAGE RULES:
                 - analyzeSchema: ALWAYS call this FIRST
                 - generateFullSchemaDiagram: Call for SIMPLE schemas when diagram requested (no parameters)
                 - suggestEntryPoints: Call for non-SIMPLE schemas
-                - extractSubgraph: Call after user selects focus view
-                - generateMermaid: Call with subgraph result for non-SIMPLE schemas
+                - extractSubgraph: Call to list the views around a focus view without drawing them
+                - generateMermaid: Call with focus view and depths for non-SIMPLE schemas
                 
                 RESPONSE REQUIREMENTS:
                 - When a tool returns a Mermaid diagram (starts with ```mermaid), include it in your response
+                - When a diagram is followed by a TRUNCATED note, tell the user the diagram is incomplete and how to see more
                 - Do NOT summarize or explain the diagram content without showing the actual diagram code
                 - Be concise - let the diagram speak for itself
                 - After showing diagram, you may add brief observations

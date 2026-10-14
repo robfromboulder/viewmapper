@@ -3,7 +3,7 @@ This module exposes the ViewMapper agent as an MCP tool for Claude Desktop, enab
 
 ## Dependencies
 
-- **Trino 479** - For schemas to map
+- **Trino 483** - For schemas to map
 - **Java 25** - Required to run ViewMapper CLI
 - **Python 3.14** - Required for MCP server
 - **ViewMapper JAR** - Built from `../viewmapper-agent/` directory
@@ -17,8 +17,8 @@ The recommended way to use ViewMapper is via Docker, which bundles all dependenc
 
 ```bash
 cd viewmapper-mcp-server
-cp ../viewmapper-agent/target/viewmapper-479.jar .
-docker image rm -f viewmapper:479 && docker build --no-cache -t viewmapper:479 .
+cp ../viewmapper-agent/target/viewmapper-483.jar .
+docker image rm -f viewmapper:483 && docker build --no-cache -t viewmapper:483 .
 ```
 
 ### 2. Configure Claude Desktop
@@ -40,7 +40,7 @@ Add the ViewMapper MCP server:
         "run", "-i", "--rm",
         "-e", "ANTHROPIC_API_KEY_FOR_VIEWMAPPER=sk-ant-your-key-here",
         "-e", "VIEWMAPPER_CONNECTION=test://simple_ecommerce",
-        "viewmapper:479"
+        "viewmapper:483"
       ]
     }
   }
@@ -121,7 +121,7 @@ Test the container manually:
 docker run -i --rm \
   -e ANTHROPIC_API_KEY_FOR_VIEWMAPPER="sk-ant-..." \
   -e VIEWMAPPER_CONNECTION="test://simple_ecommerce" \
-  viewmapper:479
+  viewmapper:483
 ```
 
 ### Issue: Conversation context not working

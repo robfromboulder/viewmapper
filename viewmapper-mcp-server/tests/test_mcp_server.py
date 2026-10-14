@@ -7,8 +7,11 @@ Tests tool registration, error handling, and context management without requirin
 actual Java CLI execution.
 """
 
+import asyncio
 import os
-from unittest.mock import MagicMock, patch
+import subprocess
+import sys
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -107,6 +110,14 @@ class TestPromptBuilding:
 class TestToolExecution:
     """Test tool execution with mocked subprocess calls."""
 
+    @staticmethod
+    def fake_process(returncode=0, stdout="", stderr="", communicate=None):
+        proc = MagicMock()
+        proc.returncode = returncode
+        proc.communicate = communicate or AsyncMock(return_value=(stdout.encode(), stderr.encode()))
+        proc.wait = AsyncMock()
+        return proc
+
     @pytest.mark.asyncio
     async def test_unknown_tool_returns_error(self):
         """Calling unknown tool returns error message."""
@@ -123,15 +134,11 @@ class TestToolExecution:
         assert "required" in result[0].text.lower()
 
     @pytest.mark.asyncio
-    @patch("mcp_server.subprocess.run")
+    @patch("mcp_server.asyncio.create_subprocess_exec", new_callable=AsyncMock)
     async def test_successful_execution(self, mock_subprocess):
         """Successful Java CLI execution returns response."""
         # Setup mocks
-        mock_subprocess.return_value = MagicMock(
-            returncode=0,
-            stdout="Here is your diagram:\n```mermaid\ngraph TB\n```",
-            stderr=""
-        )
+        mock_subprocess.return_value = self.fake_process(stdout="Here is your diagram:\n```mermaid\ngraph TB\n```")
 
         # Clear conversation history
         conversation_histories.clear()
@@ -148,20 +155,16 @@ class TestToolExecution:
 
         # Verify command structure
         call_args = mock_subprocess.call_args
-        cmd = call_args[0][0]
+        cmd = call_args[0]
         assert "-jar" in cmd
         assert "run" in cmd
         assert "--connection" in cmd
 
     @pytest.mark.asyncio
-    @patch("mcp_server.subprocess.run")
+    @patch("mcp_server.asyncio.create_subprocess_exec", new_callable=AsyncMock)
     async def test_java_error_handling(self, mock_subprocess):
         """Java CLI errors are properly formatted."""
-        mock_subprocess.return_value = MagicMock(
-            returncode=1,
-            stdout="",
-            stderr="Error: Invalid SQL syntax"
-        )
+        mock_subprocess.return_value = self.fake_process(returncode=1, stderr="Error: Invalid SQL syntax")
 
         result = await call_tool("explore_trino_views", {
             "query": "Show diagram"
@@ -172,27 +175,41 @@ class TestToolExecution:
         assert "Invalid SQL syntax" in result[0].text
 
     @pytest.mark.asyncio
-    @patch("mcp_server.subprocess.run")
+    @patch("mcp_server.asyncio.create_subprocess_exec", new_callable=AsyncMock)
     async def test_timeout_handling(self, mock_subprocess):
         """Timeout errors are properly formatted."""
-        mock_subprocess.side_effect = subprocess.TimeoutExpired("java", 60)
+        proc = self.fake_process(returncode=None, communicate=AsyncMock(side_effect=asyncio.Event().wait))
+        mock_subprocess.return_value = proc
 
-        result = await call_tool("explore_trino_views", {
-            "query": "Show diagram"
-        })
+        with patch("mcp_server.TIMEOUT_SECONDS", 0.01):
+            result = await call_tool("explore_trino_views", {
+                "query": "Show diagram"
+            })
 
         assert len(result) == 1
         assert "timed out" in result[0].text.lower()
+        proc.kill.assert_called_once()
 
     @pytest.mark.asyncio
-    @patch("mcp_server.subprocess.run")
+    @patch("mcp_server.asyncio.create_subprocess_exec", new_callable=AsyncMock)
+    async def test_cancellation_kills_agent(self, mock_subprocess):
+        """A cancelled call kills the agent rather than leaving it running."""
+        proc = self.fake_process(returncode=None, communicate=AsyncMock(side_effect=asyncio.Event().wait))
+        mock_subprocess.return_value = proc
+
+        task = asyncio.create_task(call_tool("explore_trino_views", {"query": "Show diagram"}))
+        await asyncio.sleep(0.01)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+        proc.kill.assert_called_once()
+
+    @pytest.mark.asyncio
+    @patch("mcp_server.asyncio.create_subprocess_exec", new_callable=AsyncMock)
     async def test_conversation_history_accumulates(self, mock_subprocess):
         """Verify conversation history builds up across calls."""
-        mock_subprocess.return_value = MagicMock(
-            returncode=0,
-            stdout="Response text",
-            stderr=""
-        )
+        mock_subprocess.return_value = self.fake_process(stdout="Response text")
 
         # Clear history
         conversation_histories.clear()
@@ -216,7 +233,7 @@ class TestToolExecution:
 
         # Verify the enhanced prompt includes history
         second_call_args = mock_subprocess.call_args_list[1]
-        cmd = second_call_args[0][0]
+        cmd = second_call_args[0]
         # The prompt is the argument after "run"
         run_index = cmd.index("run")
         prompt = cmd[run_index + 1]
@@ -224,5 +241,18 @@ class TestToolExecution:
         assert "First question" in prompt
 
 
-# Need to import subprocess for the TimeoutExpired exception
-import subprocess
+class TestConfiguration:
+    """Test configuration read from the environment at startup."""
+
+    @pytest.mark.parametrize("value", ["5m", "", "-1", "0"])
+    def test_invalid_timeout_fails_at_startup(self, value):
+        """A malformed timeout stops the server with a message naming the variable."""
+        result = subprocess.run(
+            [sys.executable, "-c", "import mcp_server"],
+            capture_output=True,
+            text=True,
+            env={**os.environ, "VIEWMAPPER_TIMEOUT_SECONDS": value},
+            cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        )
+        assert result.returncode != 0
+        assert "VIEWMAPPER_TIMEOUT_SECONDS" in result.stderr

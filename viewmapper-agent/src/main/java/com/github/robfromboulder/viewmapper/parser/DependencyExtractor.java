@@ -5,7 +5,6 @@ package com.github.robfromboulder.viewmapper.parser;
 import io.trino.sql.tree.AliasedRelation;
 import io.trino.sql.tree.DefaultTraversalVisitor;
 import io.trino.sql.tree.ExistsPredicate;
-import io.trino.sql.tree.InPredicate;
 import io.trino.sql.tree.Join;
 import io.trino.sql.tree.QualifiedName;
 import io.trino.sql.tree.Query;
@@ -15,11 +14,14 @@ import io.trino.sql.tree.SelectItem;
 import io.trino.sql.tree.SetOperation;
 import io.trino.sql.tree.SubqueryExpression;
 import io.trino.sql.tree.Table;
+import io.trino.sql.tree.TableFunctionTableArgument;
 import io.trino.sql.tree.TableSubquery;
 import io.trino.sql.tree.Unnest;
-import io.trino.sql.tree.With;
+import io.trino.sql.tree.WindowDefinition;
 import io.trino.sql.tree.WithQuery;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -32,6 +34,7 @@ import java.util.Set;
  * - Subqueries
  * - CTEs (WITH clauses) - excluding them from dependencies
  * - UNNEST operations
+ * - TABLE(...) arguments to table functions
  * - Quoted identifiers
  * <p>
  * It does NOT extract:
@@ -41,7 +44,7 @@ import java.util.Set;
  */
 public class DependencyExtractor extends DefaultTraversalVisitor<Void> {
 
-    private final Set<String> cteNames = new HashSet<>();
+    private final Deque<Set<String>> cteScopes = new ArrayDeque<>();
     private final Set<TableReference> dependencies = new HashSet<>();
 
     /**
@@ -71,16 +74,6 @@ public class DependencyExtractor extends DefaultTraversalVisitor<Void> {
     }
 
     /**
-     * Visits an IN predicate that might contain a subquery.
-     */
-    @Override
-    protected Void visitInPredicate(InPredicate node, Void context) {
-        process(node.getValue(), context);
-        process(node.getValueList(), context);
-        return null;
-    }
-
-    /**
      * Visits a JOIN clause.
      * Ensures we traverse both sides of the join.
      */
@@ -94,15 +87,31 @@ public class DependencyExtractor extends DefaultTraversalVisitor<Void> {
 
     /**
      * Visits a query (SELECT statement).
-     * Process the FROM clause and other parts.
+     * A WITH clause opens a scope that covers this query's body and ORDER BY, and later CTEs in the same clause.
      */
     @Override
     protected Void visitQuery(Query node, Void context) {
-        // Process WITH clause first (to collect CTE names)
-        node.getWith().ifPresent(with -> process(with, context));
+        node.getWith().ifPresent(with -> {
+            Set<String> scope = new HashSet<>();
+            cteScopes.push(scope);
+            for (WithQuery query : with.getQueries()) {
+                // a non-recursive CTE can't see its own name, so its body may read a real table of that name
+                String name = query.getName().getValue().toLowerCase();
+                if (with.isRecursive()) {
+                    scope.add(name);
+                }
+                process(query.getQuery(), context);
+                scope.add(name);
+            }
+        });
 
-        // Then process the main query body
-        return process(node.getQueryBody(), context);
+        process(node.getQueryBody(), context);
+
+        // ORDER BY after a set operation lands here rather than on a query specification
+        node.getOrderBy().ifPresent(orderBy -> process(orderBy, context));
+
+        node.getWith().ifPresent(with -> cteScopes.pop());
+        return null;
     }
 
     /**
@@ -126,6 +135,12 @@ public class DependencyExtractor extends DefaultTraversalVisitor<Void> {
 
         // Process HAVING
         node.getHaving().ifPresent(having -> process(having, context));
+
+        for (WindowDefinition window : node.getWindows()) {
+            process(window, context);
+        }
+
+        node.getOrderBy().ifPresent(orderBy -> process(orderBy, context));
 
         return null;
     }
@@ -156,14 +171,27 @@ public class DependencyExtractor extends DefaultTraversalVisitor<Void> {
     @Override
     protected Void visitTable(Table node, Void context) {
         QualifiedName tableName = node.getName();
-        String simpleTableName = tableName.getSuffix().toLowerCase();
 
-        // Only add if it's not a CTE
-        if (!cteNames.contains(simpleTableName)) {
+        // only an unqualified name can refer to a CTE
+        String simpleTableName = tableName.getSuffix().toLowerCase();
+        boolean isCte = tableName.getParts().size() == 1 && cteScopes.stream().anyMatch(scope -> scope.contains(simpleTableName));
+        if (!isCte) {
             dependencies.add(new TableReference(tableName));
         }
 
         return super.visitTable(node, context);
+    }
+
+    /**
+     * Visits a TABLE(...) argument to a table function, such as exclude_columns.
+     * The superclass treats it as a leaf, which would drop the table it names.
+     */
+    @Override
+    protected Void visitTableArgument(TableFunctionTableArgument node, Void context) {
+        process(node.getTable(), context);
+        node.getPartitionBy().ifPresent(expressions -> expressions.forEach(expression -> process(expression, context)));
+        node.getOrderBy().ifPresent(orderBy -> process(orderBy, context));
+        return null;
     }
 
     /**
@@ -184,21 +212,6 @@ public class DependencyExtractor extends DefaultTraversalVisitor<Void> {
     @Override
     protected Void visitUnnest(Unnest node, Void context) {
         return super.visitUnnest(node, context);
-    }
-
-    /**
-     * Visits a WITH clause (CTE definition).
-     * Collects CTE names to exclude them from dependencies.
-     */
-    @Override
-    protected Void visitWith(With node, Void context) {
-        // First, collect all CTE names
-        for (WithQuery query : node.getQueries()) {
-            cteNames.add(query.getName().getValue().toLowerCase());
-        }
-
-        // Then process the CTE queries to extract their dependencies
-        return super.visitWith(node, context);
     }
 
 }

@@ -4,6 +4,7 @@ package com.github.robfromboulder.viewmapper.agent.tools;
 
 import com.github.robfromboulder.viewmapper.agent.types.SubgraphResult;
 import com.github.robfromboulder.viewmapper.parser.DependencyAnalyzer;
+import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.DefaultEdge;
@@ -21,13 +22,17 @@ import java.util.Set;
  */
 public class GenerateMermaidToolExecutor {
 
+    public static final int MAX_DIAGRAM_VIEWS = 100; // larger diagrams are unreadable
+
     private final DependencyAnalyzer analyzer;
+    private final ExtractSubgraphToolExecutor extractor;
 
     /**
      * Default constructor.
      */
     public GenerateMermaidToolExecutor(DependencyAnalyzer analyzer) {
         this.analyzer = Objects.requireNonNull(analyzer, "Analyzer cannot be null");
+        this.extractor = new ExtractSubgraphToolExecutor(analyzer);
     }
 
     /**
@@ -43,8 +48,9 @@ public class GenerateMermaidToolExecutor {
         Set<String> allViews = graph.vertexSet();
         if (allViews.isEmpty())
             return "graph TB\n    empty[No views in schema]";
-        else if (allViews.size() > 100)
-            return String.format("graph TB\n    error[Schema too large: %d views. Use extractSubgraph instead.]", allViews.size());
+        else if (allViews.size() > MAX_DIAGRAM_VIEWS)
+            return String.format("graph TB\n    error[Schema too large: %d views. "
+                    + "Use generateMermaid with a focus view instead.]", allViews.size());
 
         // start diagram
         StringBuilder mermaid = new StringBuilder();
@@ -74,7 +80,32 @@ public class GenerateMermaidToolExecutor {
     }
 
     /**
-     * Generates a Mermaid diagram from a subgraph result.
+     * Generates a Mermaid diagram of the subgraph around a view.
+     *
+     * @param focusView       The view to focus on (center of the subgraph)
+     * @param depthUpstream   How many levels of dependencies to include (incoming edges)
+     * @param depthDownstream How many levels of dependents to include (outgoing edges)
+     * @param maxNodes        Maximum views to draw (default = 50), clamped to MAX_DIAGRAM_VIEWS
+     * @return Mermaid diagram syntax
+     */
+    @Tool("Generates Mermaid diagram of the subgraph around a view, within specified depths. "
+            + "Use for MODERATE/COMPLEX schemas once a focus view is chosen.")
+    public String generateMermaid(
+            @P(ExtractSubgraphToolExecutor.FOCUS_VIEW_DESCRIPTION) String focusView,
+            @P(ExtractSubgraphToolExecutor.DEPTH_UPSTREAM_DESCRIPTION) int depthUpstream,
+            @P(ExtractSubgraphToolExecutor.DEPTH_DOWNSTREAM_DESCRIPTION) int depthDownstream,
+            @P(value = "Maximum views to draw (default " + ExtractSubgraphToolExecutor.DEFAULT_MAX_NODES
+                    + ", at most " + MAX_DIAGRAM_VIEWS + ")", required = false) Integer maxNodes) {
+        if (maxNodes != null && (maxNodes <= 0 || maxNodes > MAX_DIAGRAM_VIEWS)) maxNodes = MAX_DIAGRAM_VIEWS;
+        SubgraphResult subgraph = extractor.extractSubgraph(focusView, depthUpstream, depthDownstream, maxNodes);
+        String mermaid = renderSubgraph(subgraph);
+        if (!subgraph.isTruncated()) return mermaid;
+        return mermaid + String.format("TRUNCATED: diagram shows only %d views; more exist within these depths. "
+                + "Raise maxNodes or lower the depths to see them.\n", subgraph.getViewCount());
+    }
+
+    /**
+     * Renders a subgraph as a Mermaid diagram.
      * <p>
      * Applies styling rules:
      * - Focus view: Red/bold border
@@ -84,13 +115,13 @@ public class GenerateMermaidToolExecutor {
      * @param subgraph The subgraph to visualize
      * @return Mermaid diagram syntax
      */
-    @Tool("Generates Mermaid diagram from subgraph. Use after extracting subgraph to create visualization for MODERATE/COMPLEX schemas.")
-    public String generateMermaid(SubgraphResult subgraph) {
+    public String renderSubgraph(SubgraphResult subgraph) {
         Objects.requireNonNull(subgraph, "Subgraph cannot be null");
         if (subgraph.getViewCount() == 0)
             return "graph TB\n    empty[No views in subgraph]";
-        else if (subgraph.getViewCount() > 100)
-            return String.format("graph TB\n    error[Subgraph too large: %d views. Maximum 100 for readability.]", subgraph.getViewCount());
+        else if (subgraph.getViewCount() > MAX_DIAGRAM_VIEWS)
+            return String.format("graph TB\n    error[Subgraph too large: %d views. Maximum %d for readability.]",
+                    subgraph.getViewCount(), MAX_DIAGRAM_VIEWS);
 
         // start diagram
         StringBuilder mermaid = new StringBuilder();

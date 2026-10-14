@@ -12,20 +12,20 @@ import java.util.Objects;
  * <ul>
  * <li>ANTHROPIC_API_KEY_FOR_VIEWMAPPER: Agent-specific API key (recommended for production)</li>
  * <li>ANTHROPIC_API_KEY: Generic API key (fallback for development)</li>
- * <li>ANTHROPIC_MODEL: Optional model name (defaults to claude-3-7-sonnet-20250219)</li>
- * <li>ANTHROPIC_TIMEOUT_SECONDS: Optional timeout in seconds (defaults to 60)</li>
+ * <li>ANTHROPIC_MODEL: Optional model name (defaults to claude-sonnet-5-5)</li>
+ * <li>ANTHROPIC_TIMEOUT_SECONDS: Optional timeout in seconds (defaults to 180)</li>
  * </ul>
  * <p>
  * <b>Production Best Practice:</b> Use ANTHROPIC_API_KEY_FOR_VIEWMAPPER with a dedicated API key.
  * This enables cost tracking, independent rate limits, and security isolation per agent.
  * <p>
- * <b>Model Selection:</b> Default uses Claude 3.7 Sonnet for reliable tool calling.
+ * <b>Model Selection:</b> Default uses Claude Sonnet 5.5 for reliable tool calling.
  * Haiku may not consistently execute tools in agentic workflows.
  */
 public class AnthropicConfig {
 
-    public static final String DEFAULT_MODEL = "claude-3-7-sonnet-20250219";
-    public static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(60);
+    public static final String DEFAULT_MODEL = "claude-sonnet-5-5";
+    public static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(180);
 
     /**
      * Builder class supporting chained method calls.

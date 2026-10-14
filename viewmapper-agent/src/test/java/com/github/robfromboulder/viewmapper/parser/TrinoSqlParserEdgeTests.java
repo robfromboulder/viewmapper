@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * - String literals containing table-like patterns
  * - Comments containing table names
  * - UNNEST operations
+ * - PIVOT operations
  * - VALUES clauses
  * - Case sensitivity
  * - Special characters and quoted identifiers
@@ -382,6 +383,71 @@ class TrinoSqlParserEdgeTests {
         Set<TableReference> dependencies = parser.extractDependencies(sql);
         assertThat(dependencies).hasSize(2);
         assertThat(getTableNames(dependencies)).containsExactlyInAnyOrder("target_table", "source_table");
+    }
+
+    @Test
+    void testPivot() {
+        String sql = """
+                SELECT *
+                FROM quarterly_sales
+                PIVOT (sum(amount) FOR quarter IN ('Q1', 'Q2', 'Q3', 'Q4'))
+                """;
+
+        Set<TableReference> dependencies = parser.extractDependencies(sql);
+        assertThat(getTableNames(dependencies)).containsExactly("quarterly_sales");
+    }
+
+    @Test
+    void testPivotOverJoin() {
+        String sql = """
+                SELECT *
+                FROM (
+                    SELECT r.name AS region, s.quarter, s.amount
+                    FROM sales s
+                    JOIN regions r ON s.region_id = r.id
+                )
+                PIVOT (sum(amount) FOR quarter IN ('Q1', 'Q2'))
+                """;
+
+        Set<TableReference> dependencies = parser.extractDependencies(sql);
+        assertThat(getTableNames(dependencies)).containsExactlyInAnyOrder("sales", "regions");
+    }
+
+    @Test
+    void testSubqueryInOrderBy() {
+        String sql = """
+                SELECT *
+                FROM orders
+                ORDER BY (SELECT max(rank) FROM priorities)
+                """;
+
+        Set<TableReference> dependencies = parser.extractDependencies(sql);
+        assertThat(getTableNames(dependencies)).containsExactlyInAnyOrder("orders", "priorities");
+    }
+
+    @Test
+    void testSubqueryInOrderByAfterUnion() {
+        String sql = """
+                SELECT id FROM orders
+                UNION
+                SELECT id FROM returns
+                ORDER BY (SELECT max(rank) FROM priorities)
+                """;
+
+        Set<TableReference> dependencies = parser.extractDependencies(sql);
+        assertThat(getTableNames(dependencies)).containsExactlyInAnyOrder("orders", "returns", "priorities");
+    }
+
+    @Test
+    void testSubqueryInWindowClause() {
+        String sql = """
+                SELECT name, rank() OVER w AS dept_rank
+                FROM employees
+                WINDOW w AS (PARTITION BY department ORDER BY (SELECT max(level) FROM grades))
+                """;
+
+        Set<TableReference> dependencies = parser.extractDependencies(sql);
+        assertThat(getTableNames(dependencies)).containsExactlyInAnyOrder("employees", "grades");
     }
 
     // Helper methods

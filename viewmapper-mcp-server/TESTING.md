@@ -20,7 +20,7 @@
          "env": {
            "ANTHROPIC_API_KEY_FOR_VIEWMAPPER": "sk-ant-your-key-here",
            "VIEWMAPPER_CONNECTION": "test://simple_ecommerce",
-           "VIEWMAPPER_JAR": "/absolute/path/to/viewmapper/viewmapper-agent/target/viewmapper-479.jar"
+           "VIEWMAPPER_JAR": "/absolute/path/to/viewmapper/viewmapper-agent/target/viewmapper-483.jar"
          }
        }
      }
@@ -83,7 +83,7 @@ Then: Show me the diagram for the first one.
 ```bash
 export ANTHROPIC_API_KEY_FOR_VIEWMAPPER="sk-ant-..."
 export VIEWMAPPER_CONNECTION="test://simple_ecommerce"
-export VIEWMAPPER_JAR="/absolute/path/to/viewmapper/viewmapper-agent/target/viewmapper-479.jar"
+export VIEWMAPPER_JAR="/absolute/path/to/viewmapper/viewmapper-agent/target/viewmapper-483.jar"
 echo '{"query": "Show me the full dependency diagram"}' | python3 mcp_server.py
 ```
 
