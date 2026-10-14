@@ -1,12 +1,12 @@
 # viewmapper-agent
-This module contains the core agent for the ViewMapper project, based on LangChain4j, and using Trino's native SQL parser to accurately extract view-to-view and view-to-table dependencies.
+This module contains the core agent for the ViewMapper project, built on the Anthropic Java SDK, and using Trino's native SQL parser to accurately extract view-to-view and view-to-table dependencies.
 
 ## Dependencies
 
 - **JDK 25** - Java compiler and runtime 
 - **Trino-Parser** - SQL parsing and AST
+- **Anthropic Java SDK** - Claude API and tool runner
 - **Jackson** - JSON processing
-- **LangChain4j** - LLM agent framework
 - **Picocli** - CLI framework
 - **JUnit 5** - Testing framework
 - **AssertJ** - Fluent assertions

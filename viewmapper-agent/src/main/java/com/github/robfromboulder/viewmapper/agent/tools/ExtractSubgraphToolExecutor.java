@@ -2,11 +2,13 @@
 
 package com.github.robfromboulder.viewmapper.agent.tools;
 
+import com.anthropic.helpers.BetaRunnableTool;
+import com.fasterxml.jackson.annotation.JsonClassDescription;
+import com.fasterxml.jackson.annotation.JsonPropertyDescription;
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.github.robfromboulder.viewmapper.agent.types.SubgraphResult;
 import com.github.robfromboulder.viewmapper.parser.DependencyAnalyzer;
-import dev.langchain4j.agent.tool.P;
-import dev.langchain4j.agent.tool.Tool;
-
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -23,6 +25,27 @@ public class ExtractSubgraphToolExecutor {
     public static final String FOCUS_VIEW_DESCRIPTION = "View to focus on, at the center of the subgraph";
     public static final String DEPTH_UPSTREAM_DESCRIPTION = "Levels of dependencies to include";
     public static final String DEPTH_DOWNSTREAM_DESCRIPTION = "Levels of dependents to include";
+
+    /**
+     * Arguments for extractSubgraph.
+     */
+    @JsonTypeName("extractSubgraph")
+    @JsonClassDescription("Extracts focused subgraph around a view. Returns views within specified depths. "
+            + "Use after selecting entry point.")
+    public static class Arguments {
+        @JsonPropertyDescription(FOCUS_VIEW_DESCRIPTION)
+        public String focusView;
+
+        @JsonPropertyDescription(DEPTH_UPSTREAM_DESCRIPTION)
+        public int depthUpstream;
+
+        @JsonPropertyDescription(DEPTH_DOWNSTREAM_DESCRIPTION)
+        public int depthDownstream;
+
+        @JsonPropertyDescription("Maximum views to include, " + DEFAULT_MAX_NODES
+                + " unless the user asks for more, 0 for unlimited")
+        public Integer maxNodes;
+    }
 
     private final DependencyAnalyzer analyzer;
 
@@ -44,18 +67,20 @@ public class ExtractSubgraphToolExecutor {
      * @param maxNodes        Maximum nodes in result (0 = unlimited, default = 50 for readability)
      * @return Subgraph result with view list and metadata
      */
-    @Tool("Extracts focused subgraph around a view. Returns views within specified depths. Use after selecting entry point.")
-    public SubgraphResult extractSubgraph(
-            @P(FOCUS_VIEW_DESCRIPTION) String focusView,
-            @P(DEPTH_UPSTREAM_DESCRIPTION) int depthUpstream,
-            @P(DEPTH_DOWNSTREAM_DESCRIPTION) int depthDownstream,
-            @P(value = "Maximum views to include (0 = unlimited, default " + DEFAULT_MAX_NODES + ")", required = false)
-            Integer maxNodes) {
+    public SubgraphResult extractSubgraph(String focusView, int depthUpstream, int depthDownstream, Integer maxNodes) {
         if (!analyzer.containsView(focusView)) throw new IllegalArgumentException(String.format("View '%s' not found in schema", focusView));
         int effectiveMaxNodes = maxNodes != null ? maxNodes : DEFAULT_MAX_NODES;
         Set<String> views = analyzer.findSubgraph(focusView, depthUpstream, depthDownstream, effectiveMaxNodes);
         boolean truncated = effectiveMaxNodes > 0 && views.size() >= effectiveMaxNodes;
         return new SubgraphResult(views, focusView, depthUpstream, depthDownstream, truncated);
+    }
+
+    /**
+     * Returns the tools this executor provides to the model.
+     */
+    public List<BetaRunnableTool> tools() {
+        return List.of(BetaRunnableTool.of(Arguments.class,
+                a -> RunnableTools.result(extractSubgraph(a.focusView, a.depthUpstream, a.depthDownstream, a.maxNodes))));
     }
 
 }
