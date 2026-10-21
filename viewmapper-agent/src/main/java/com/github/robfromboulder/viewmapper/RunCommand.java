@@ -12,10 +12,16 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
+import java.net.ConnectException;
+import java.net.SocketTimeoutException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.UnknownHostException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.concurrent.Callable;
 
@@ -124,7 +130,16 @@ public class RunCommand implements Callable<Integer> {
      */
     private void loadFromJdbc(DependencyAnalyzer analyzer, String jdbcUrl, String schemaName) throws Exception {
         if (verbose) System.err.println("Loading from Trino...");
-        try (Connection conn = DriverManager.getConnection(jdbcUrl)) {
+
+        // the driver only parses the url here, so a failure means it's malformed rather than unreachable
+        Connection connection;
+        try {
+            connection = DriverManager.getConnection(jdbcUrl);
+        } catch (SQLException e) {
+            throw new IllegalArgumentException(describeMalformedUrl(jdbcUrl, e), e);
+        }
+
+        try (Connection conn = connection) {
             String catalog;
             String schema;
             final String urlCatalog = conn.getCatalog();
@@ -167,7 +182,51 @@ public class RunCommand implements Callable<Integer> {
                     }
                     if (empty) throw new IllegalArgumentException("No views found in " + catalog + "." + schema);
                 }
+            } catch (SQLException e) {
+                // the driver connects lazily, so this first query is where an unreachable host surfaces
+                throw describeConnectionFailure(jdbcUrl, e);
             }
+        }
+    }
+
+    /**
+     * Explains a query failure caused by the network in terms of what to check, or returns the original exception.
+     * Names only the host and port, since the url may carry a password.
+     */
+    static Exception describeConnectionFailure(String jdbcUrl, SQLException e) {
+        String host = hostAndPort(jdbcUrl);
+        for (Throwable cause = e; cause != null; cause = cause.getCause()) {
+            if (cause instanceof UnknownHostException)
+                return new IllegalStateException("Can't find Trino host '" + host + "': check the host name in the connection URL", e);
+            if (cause instanceof ConnectException)
+                return new IllegalStateException("Nothing is accepting connections at " + host + ": "
+                        + "check the host and port in the connection URL, and that Trino is running", e);
+            if (cause instanceof SocketTimeoutException)
+                return new IllegalStateException("Timed out connecting to " + host + ": "
+                        + "check the host and port in the connection URL, and any firewall or VPN in between", e);
+        }
+        return e;
+    }
+
+    /**
+     * Explains a url the Trino driver refused to parse, with the forms it accepts.
+     * Removes the url from the driver's message, since it may carry a password.
+     */
+    static String describeMalformedUrl(String jdbcUrl, SQLException e) {
+        String reason = String.valueOf(e.getMessage()).replace(jdbcUrl, "the URL").replace(jdbcUrl.substring("jdbc:".length()), "the URL");
+        return "Malformed connection URL: " + reason
+                + "\nExpected forms:\n  jdbc:trino://host:port?user=username\n  jdbc:trino://host:port/catalog?user=username";
+    }
+
+    /**
+     * Returns the host and port of a jdbc url the driver has already parsed, or a placeholder if it can't be read.
+     */
+    private static String hostAndPort(String jdbcUrl) {
+        try {
+            URI uri = new URI(jdbcUrl.substring("jdbc:".length()));
+            return uri.getPort() == -1 ? uri.getHost() : uri.getHost() + ":" + uri.getPort();
+        } catch (URISyntaxException | IndexOutOfBoundsException e) {
+            return "the configured host";
         }
     }
 
