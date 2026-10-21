@@ -11,12 +11,9 @@ Maintains conversation context across multiple turns for natural schema explorat
 import asyncio
 import os
 
-from mcp.server import Server
+from mcp.server import Server, ServerRequestContext
 from mcp.server.stdio import stdio_server
-from mcp.types import TextContent, Tool
-
-# Server instance
-app = Server("viewmapper")
+from mcp.types import CallToolRequestParams, CallToolResult, ListToolsResult, PaginatedRequestParams, TextContent, Tool
 
 # Conversation history storage
 # Key: session_id (we'll use a simple default session for now)
@@ -103,10 +100,14 @@ def build_prompt_with_history(history: list[dict[str, str]], current_query: str)
     return "\n".join(prompt_parts)
 
 
-@app.list_tools()
-async def list_tools() -> list[Tool]:
+def tool_error(text: str) -> CallToolResult:
+    """Mark a failed call as an error, so the client can't mistake it for an answer."""
+    return CallToolResult(content=[TextContent(type="text", text=text)], is_error=True)
+
+
+async def list_tools(ctx: ServerRequestContext, params: PaginatedRequestParams | None) -> ListToolsResult:
     """Register ViewMapper tool with MCP."""
-    return [
+    return ListToolsResult(tools=[
         Tool(
             name="explore_trino_views",
             description=(
@@ -114,7 +115,7 @@ async def list_tools() -> list[Tool]:
                 "The agent intelligently guides you through complex view hierarchies, suggests entry points, and creates focused visualizations. "
                 "Maintains conversation context for natural multi-turn exploration."
             ),
-            inputSchema={
+            input_schema={
                 "type": "object",
                 "properties": {
                     "query": {
@@ -138,36 +139,30 @@ async def list_tools() -> list[Tool]:
                 "required": ["query"]
             }
         )
-    ]
+    ])
 
 
-@app.call_tool()
-async def call_tool(name: str, arguments: dict) -> list[TextContent]:
+async def call_tool(ctx: ServerRequestContext, params: CallToolRequestParams) -> CallToolResult:
     """
     Handle tool invocation from Claude Desktop.
 
     Args:
-        name: Tool name (should be "explore_trino_views")
-        arguments: Tool arguments (query)
+        ctx: Request context (unused)
+        params: Tool name (should be "explore_trino_views") and arguments (query, schema)
 
     Returns:
-        List containing single TextContent with agent response
+        Agent response, or an error result if the call failed
     """
-    if name != "explore_trino_views":
-        return [TextContent(
-            type="text",
-            text=f"❌ Unknown tool: {name}"
-        )]
+    if params.name != "explore_trino_views":
+        return tool_error(f"❌ Unknown tool: {params.name}")
 
     # Extract arguments
+    arguments = params.arguments or {}
     query = arguments.get("query")
     schema = arguments.get("schema")
 
     if not query:
-        return [TextContent(
-            type="text",
-            text="❌ Error: 'query' parameter is required"
-        )]
+        return tool_error("❌ Error: 'query' parameter is required")
 
     # Get session and build prompt with history
     session_id = get_session_id()
@@ -211,10 +206,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 
         if proc.returncode != 0:
             error_msg = stderr.decode().strip() or "Unknown error"
-            return [TextContent(
-                type="text",
-                text=f"❌ ViewMapper Error:\n{error_msg}"
-            )]
+            return tool_error(f"❌ ViewMapper Error:\n{error_msg}")
 
         response = stdout.decode().strip()
 
@@ -224,23 +216,17 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         conversation_histories[session_id] = history
 
         # Return response directly (includes any Mermaid diagrams)
-        return [TextContent(type="text", text=response)]
+        return CallToolResult(content=[TextContent(type="text", text=response)])
 
     except TimeoutError:
-        return [TextContent(
-            type="text",
-            text=f"⏱️ Request timed out after {TIMEOUT_SECONDS} seconds. Try a simpler query or smaller dataset."
-        )]
+        return tool_error(f"⏱️ Request timed out after {TIMEOUT_SECONDS} seconds. Try a simpler query or smaller dataset.")
     except FileNotFoundError:
-        return [TextContent(
-            type="text",
-            text=f"❌ Error: Java or JAR file not found. Check VIEWMAPPER_JAR={VIEWMAPPER_JAR}"
-        )]
+        return tool_error(f"❌ Error: Java or JAR file not found. Check VIEWMAPPER_JAR={VIEWMAPPER_JAR}")
     except Exception as e:
-        return [TextContent(
-            type="text",
-            text=f"❌ Unexpected error: {str(e)}"
-        )]
+        return tool_error(f"❌ Unexpected error: {str(e)}")
+
+
+app = Server("viewmapper", on_list_tools=list_tools, on_call_tool=call_tool)
 
 
 async def main():

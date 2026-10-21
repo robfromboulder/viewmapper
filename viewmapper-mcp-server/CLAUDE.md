@@ -45,4 +45,4 @@ No Java, JAR, or API key required for tests. Manual testing requires Claude Desk
 - PEP 8, 4-space indentation, line length ~88 (Black)
 - Copyright: `# © 2024-2026 Rob Dickinson (robfromboulder)`
 - Type hints on all function parameters and returns
-- Errors return `TextContent` to MCP — never raise exceptions to the client
+- Errors return a `CallToolResult` with `is_error=True` — never raise exceptions to the client
