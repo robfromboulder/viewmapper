@@ -111,9 +111,14 @@ async def list_tools(ctx: ServerRequestContext, params: PaginatedRequestParams |
         Tool(
             name="explore_trino_views",
             description=(
-                "Explore Trino view dependencies with AI-powered dependency analysis and Mermaid diagram generation. "
-                "The agent intelligently guides you through complex view hierarchies, suggests entry points, and creates focused visualizations. "
-                "Maintains conversation context for natural multi-turn exploration."
+                "Explore Trino view dependencies: find hub, high-impact and leaf views, trace a view's upstream and downstream lineage, "
+                "and draw Mermaid dependency diagrams. Each call runs an analysis agent against the configured connection and remembers "
+                "the last few exchanges, so follow-up questions can refer to earlier ones.\n\n"
+                "When a result contains a ```mermaid block, show it to the user as a rendered diagram (in Claude Desktop, a Mermaid "
+                "artifact) rather than as source code, because the diagram is the answer and is hard to read as text.\n\n"
+                "An error result means the question was not answered, often because the connection or schema is wrong. Tell the user "
+                "what the error says and how to fix it, rather than answering from earlier results or general knowledge, since neither "
+                "reflects the schema the user asked about."
             ),
             input_schema={
                 "type": "object",
