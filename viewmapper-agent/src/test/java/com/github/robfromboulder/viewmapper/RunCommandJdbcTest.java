@@ -91,16 +91,11 @@ class RunCommandJdbcTest {
     }
 
     @Test
-    void testTestDatasetStillWorks() {
-        CommandLine cmd = new CommandLine(new RunCommand());
-
-        // This should work (though may fail if ANTHROPIC_API_KEY not set)
-        // We're just testing that the connection string is accepted
-        int exitCode = cmd.execute("--connection", "test://simple_ecommerce", "test prompt");
-
-        // Exit code 0 (success) or 1 (runtime error) both indicate the connection string was accepted
-        // We're mainly ensuring it doesn't fail with "invalid connection string" error
-        assertThat(exitCode).isIn(0, 1);
+    void testTestConnectionStringAccepted() {
+        // a missing dataset fails after the prefix check but before the agent, so no model call is made
+        String[] err = runCapturingStderr("--connection", "test://no_such_dataset", "test prompt");
+        assertThat(err[0]).isEqualTo("1");
+        assertThat(err[1]).contains("Dataset not found: no_such_dataset").doesNotContain("Invalid connection string");
     }
 
     /**
