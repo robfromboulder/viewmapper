@@ -27,6 +27,7 @@ class AnthropicConfigTest {
         AnthropicConfig config = AnthropicConfig.builder().apiKey("test-key").build();
         assertThat(config.getApiKey()).isEqualTo("test-key");
         assertThat(config.getModelName()).isEqualTo("claude-sonnet-5-5");
+        assertThat(config.getEffort()).isEqualTo("medium");
         assertThat(config.getTimeout()).isEqualTo(Duration.ofSeconds(180));
     }
 
@@ -54,6 +55,18 @@ class AnthropicConfigTest {
     void testCustomTimeout() {
         AnthropicConfig config = AnthropicConfig.builder().apiKey("test").timeout(Duration.ofMinutes(5)).build();
         assertThat(config.getTimeout()).isEqualTo(Duration.ofMinutes(5));
+    }
+
+    @Test
+    void testCustomEffort() {
+        AnthropicConfig config = AnthropicConfig.builder().apiKey("test").effort(" XHigh ").build();
+        assertThat(config.getEffort()).isEqualTo("xhigh");
+    }
+
+    @Test
+    void testUnknownEffort() {
+        assertThatThrownBy(() -> AnthropicConfig.builder().apiKey("test").effort("extreme").build())
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("extreme");
     }
 
 }

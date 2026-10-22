@@ -2,8 +2,11 @@
 
 package com.github.robfromboulder.viewmapper.agent.tools;
 
+import com.anthropic.helpers.BetaRunnableTool;
+import com.fasterxml.jackson.annotation.JsonClassDescription;
+import com.fasterxml.jackson.annotation.JsonPropertyDescription;
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.github.robfromboulder.viewmapper.agent.discovery.DiscoveryProvider;
-import dev.langchain4j.agent.tool.Tool;
 
 import java.util.List;
 import java.util.Objects;
@@ -37,6 +40,17 @@ import java.util.Objects;
  */
 public class ListSchemasToolExecutor {
 
+    /**
+     * Arguments for listSchemas.
+     */
+    @JsonTypeName("listSchemas")
+    @JsonClassDescription("Lists all schemas in a Trino catalog. "
+            + "Use this when user wants to know what schemas are available in a specific catalog.")
+    public static class Arguments {
+        @JsonPropertyDescription("Catalog whose schemas to list")
+        public String catalog;
+    }
+
     private final DiscoveryProvider provider;
 
     /**
@@ -63,9 +77,15 @@ public class ListSchemasToolExecutor {
      * @param catalog Catalog name (required for multi-catalog, optional for single-catalog)
      * @return List of schema names in the specified catalog
      */
-    @Tool("Lists all schemas in a Trino catalog. Use this when user wants to know what schemas are available in a specific catalog.")
     public List<String> listSchemas(String catalog) {
         return provider.listSchemas(catalog);
+    }
+
+    /**
+     * Returns the tools this executor provides to the model.
+     */
+    public List<BetaRunnableTool> tools() {
+        return List.of(BetaRunnableTool.of(Arguments.class, a -> RunnableTools.result(listSchemas(a.catalog))));
     }
 
 }

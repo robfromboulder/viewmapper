@@ -2,15 +2,18 @@
 
 package com.github.robfromboulder.viewmapper.agent.tools;
 
+import com.anthropic.helpers.BetaRunnableTool;
+import com.fasterxml.jackson.annotation.JsonClassDescription;
+import com.fasterxml.jackson.annotation.JsonPropertyDescription;
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.github.robfromboulder.viewmapper.agent.types.SubgraphResult;
 import com.github.robfromboulder.viewmapper.parser.DependencyAnalyzer;
-import dev.langchain4j.agent.tool.P;
-import dev.langchain4j.agent.tool.Tool;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.DefaultEdge;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -23,6 +26,27 @@ import java.util.Set;
 public class GenerateMermaidToolExecutor {
 
     public static final int MAX_DIAGRAM_VIEWS = 100; // larger diagrams are unreadable
+
+    /**
+     * Arguments for generateMermaid.
+     */
+    @JsonTypeName("generateMermaid")
+    @JsonClassDescription("Generates Mermaid diagram of the subgraph around a view, within specified depths. "
+            + "Use for MODERATE/COMPLEX schemas once a focus view is chosen.")
+    public static class Arguments {
+        @JsonPropertyDescription(ExtractSubgraphToolExecutor.FOCUS_VIEW_DESCRIPTION)
+        public String focusView;
+
+        @JsonPropertyDescription(ExtractSubgraphToolExecutor.DEPTH_UPSTREAM_DESCRIPTION)
+        public int depthUpstream;
+
+        @JsonPropertyDescription(ExtractSubgraphToolExecutor.DEPTH_DOWNSTREAM_DESCRIPTION)
+        public int depthDownstream;
+
+        @JsonPropertyDescription("Maximum views to draw, " + ExtractSubgraphToolExecutor.DEFAULT_MAX_NODES
+                + " unless the user asks for more, at most " + MAX_DIAGRAM_VIEWS)
+        public Integer maxNodes;
+    }
 
     private final DependencyAnalyzer analyzer;
     private final ExtractSubgraphToolExecutor extractor;
@@ -42,7 +66,6 @@ public class GenerateMermaidToolExecutor {
      *
      * @return Mermaid diagram syntax for complete schema
      */
-    @Tool("Generates Mermaid diagram for entire schema. Use for SIMPLE schemas (<20 views) to show full dependency graph.")
     public String generateFullSchemaDiagram() {
         Graph<String, DefaultEdge> graph = analyzer.getGraph();
         Set<String> allViews = graph.vertexSet();
@@ -88,14 +111,7 @@ public class GenerateMermaidToolExecutor {
      * @param maxNodes        Maximum views to draw (default = 50), clamped to MAX_DIAGRAM_VIEWS
      * @return Mermaid diagram syntax
      */
-    @Tool("Generates Mermaid diagram of the subgraph around a view, within specified depths. "
-            + "Use for MODERATE/COMPLEX schemas once a focus view is chosen.")
-    public String generateMermaid(
-            @P(ExtractSubgraphToolExecutor.FOCUS_VIEW_DESCRIPTION) String focusView,
-            @P(ExtractSubgraphToolExecutor.DEPTH_UPSTREAM_DESCRIPTION) int depthUpstream,
-            @P(ExtractSubgraphToolExecutor.DEPTH_DOWNSTREAM_DESCRIPTION) int depthDownstream,
-            @P(value = "Maximum views to draw (default " + ExtractSubgraphToolExecutor.DEFAULT_MAX_NODES
-                    + ", at most " + MAX_DIAGRAM_VIEWS + ")", required = false) Integer maxNodes) {
+    public String generateMermaid(String focusView, int depthUpstream, int depthDownstream, Integer maxNodes) {
         if (maxNodes != null && (maxNodes <= 0 || maxNodes > MAX_DIAGRAM_VIEWS)) maxNodes = MAX_DIAGRAM_VIEWS;
         SubgraphResult subgraph = extractor.extractSubgraph(focusView, depthUpstream, depthDownstream, maxNodes);
         String mermaid = renderSubgraph(subgraph);
@@ -170,6 +186,19 @@ public class GenerateMermaidToolExecutor {
         mermaid.append("```\n");
 
         return mermaid.toString();
+    }
+
+    /**
+     * Returns the tools this executor provides to the model.
+     */
+    public List<BetaRunnableTool> tools() {
+        return List.of(
+                RunnableTools.withoutArguments("generateFullSchemaDiagram",
+                        "Generates Mermaid diagram for entire schema. "
+                                + "Use for SIMPLE schemas (<20 views) to show full dependency graph.",
+                        this::generateFullSchemaDiagram),
+                BetaRunnableTool.of(Arguments.class,
+                        a -> RunnableTools.result(generateMermaid(a.focusView, a.depthUpstream, a.depthDownstream, a.maxNodes))));
     }
 
     /**

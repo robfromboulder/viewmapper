@@ -14,6 +14,9 @@ import sys
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from mcp.client.session import ClientSession
+from mcp.client.stdio import StdioServerParameters, stdio_client
+from mcp.types import CallToolRequestParams, CallToolResult
 
 # Set required environment variables before importing mcp_server
 os.environ["ANTHROPIC_API_KEY_FOR_VIEWMAPPER"] = "fake-api-key"
@@ -28,26 +31,30 @@ from mcp_server import (
 )
 
 
+async def call(name: str, arguments: dict) -> CallToolResult:
+    return await call_tool(None, CallToolRequestParams(name=name, arguments=arguments))
+
+
 class TestToolRegistration:
     """Test that tools are registered correctly."""
 
     @pytest.mark.asyncio
     async def test_list_tools_returns_single_tool(self):
         """Verify exactly one tool is registered."""
-        tools = await list_tools()
+        tools = (await list_tools(None, None)).tools
         assert len(tools) == 1
 
     @pytest.mark.asyncio
     async def test_tool_has_correct_name(self):
         """Verify tool name matches expected value."""
-        tools = await list_tools()
+        tools = (await list_tools(None, None)).tools
         assert tools[0].name == "explore_trino_views"
 
     @pytest.mark.asyncio
     async def test_tool_requires_query(self):
         """Verify tool schema requires query parameter."""
-        tools = await list_tools()
-        schema = tools[0].inputSchema
+        tools = (await list_tools(None, None)).tools
+        schema = tools[0].input_schema
         assert "query" in schema["properties"]
         assert set(schema["required"]) == {"query"}
 
@@ -121,17 +128,19 @@ class TestToolExecution:
     @pytest.mark.asyncio
     async def test_unknown_tool_returns_error(self):
         """Calling unknown tool returns error message."""
-        result = await call_tool("unknown_tool", {})
-        assert len(result) == 1
-        assert "Unknown tool" in result[0].text
+        result = await call("unknown_tool", {})
+        assert len(result.content) == 1
+        assert "Unknown tool" in result.content[0].text
+        assert result.is_error
 
     @pytest.mark.asyncio
     async def test_missing_query_returns_error(self):
         """Missing query parameter returns error."""
-        result = await call_tool("explore_trino_views", {})
-        assert len(result) == 1
-        assert "query" in result[0].text.lower()
-        assert "required" in result[0].text.lower()
+        result = await call("explore_trino_views", {})
+        assert len(result.content) == 1
+        assert "query" in result.content[0].text.lower()
+        assert "required" in result.content[0].text.lower()
+        assert result.is_error
 
     @pytest.mark.asyncio
     @patch("mcp_server.asyncio.create_subprocess_exec", new_callable=AsyncMock)
@@ -144,13 +153,14 @@ class TestToolExecution:
         conversation_histories.clear()
 
         # Execute
-        result = await call_tool("explore_trino_views", {
+        result = await call("explore_trino_views", {
             "query": "Show me the diagram"
         })
 
         # Verify
-        assert len(result) == 1
-        assert "mermaid" in result[0].text
+        assert len(result.content) == 1
+        assert "mermaid" in result.content[0].text
+        assert not result.is_error
         assert mock_subprocess.called
 
         # Verify command structure
@@ -166,13 +176,14 @@ class TestToolExecution:
         """Java CLI errors are properly formatted."""
         mock_subprocess.return_value = self.fake_process(returncode=1, stderr="Error: Invalid SQL syntax")
 
-        result = await call_tool("explore_trino_views", {
+        result = await call("explore_trino_views", {
             "query": "Show diagram"
         })
 
-        assert len(result) == 1
-        assert "ViewMapper Error" in result[0].text
-        assert "Invalid SQL syntax" in result[0].text
+        assert len(result.content) == 1
+        assert "ViewMapper Error" in result.content[0].text
+        assert "Invalid SQL syntax" in result.content[0].text
+        assert result.is_error
 
     @pytest.mark.asyncio
     @patch("mcp_server.asyncio.create_subprocess_exec", new_callable=AsyncMock)
@@ -182,12 +193,13 @@ class TestToolExecution:
         mock_subprocess.return_value = proc
 
         with patch("mcp_server.TIMEOUT_SECONDS", 0.01):
-            result = await call_tool("explore_trino_views", {
+            result = await call("explore_trino_views", {
                 "query": "Show diagram"
             })
 
-        assert len(result) == 1
-        assert "timed out" in result[0].text.lower()
+        assert len(result.content) == 1
+        assert "timed out" in result.content[0].text.lower()
+        assert result.is_error
         proc.kill.assert_called_once()
 
     @pytest.mark.asyncio
@@ -197,7 +209,7 @@ class TestToolExecution:
         proc = self.fake_process(returncode=None, communicate=AsyncMock(side_effect=asyncio.Event().wait))
         mock_subprocess.return_value = proc
 
-        task = asyncio.create_task(call_tool("explore_trino_views", {"query": "Show diagram"}))
+        task = asyncio.create_task(call("explore_trino_views", {"query": "Show diagram"}))
         await asyncio.sleep(0.01)
         task.cancel()
         with pytest.raises(asyncio.CancelledError):
@@ -215,7 +227,7 @@ class TestToolExecution:
         conversation_histories.clear()
 
         # First call
-        await call_tool("explore_trino_views", {
+        await call("explore_trino_views", {
             "query": "First question"
         })
 
@@ -224,7 +236,7 @@ class TestToolExecution:
         assert len(conversation_histories[session_id]) == 2  # User + assistant
 
         # Second call
-        await call_tool("explore_trino_views", {
+        await call("explore_trino_views", {
             "query": "Second question"
         })
 
@@ -239,6 +251,28 @@ class TestToolExecution:
         prompt = cmd[run_index + 1]
         assert "Previous conversation:" in prompt
         assert "First question" in prompt
+
+
+class TestProtocol:
+    """Test the server over stdio, as Claude Desktop runs it."""
+
+    @pytest.mark.asyncio
+    async def test_failed_call_is_an_error_on_the_wire(self):
+        """A failed agent run reaches the client with isError set, not as a plain answer."""
+        server = StdioServerParameters(
+            command=sys.executable,
+            args=["mcp_server.py"],
+            env={"ANTHROPIC_API_KEY_FOR_VIEWMAPPER": "fake-api-key", "VIEWMAPPER_JAR": "/fake/path/viewmapper.jar"},
+            cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        )
+        async with stdio_client(server) as (read_stream, write_stream):
+            async with ClientSession(read_stream, write_stream) as session:
+                await session.initialize()
+                tools = await session.list_tools()
+                result = await session.call_tool("explore_trino_views", {"query": "Show diagram"})
+
+        assert [tool.name for tool in tools.tools] == ["explore_trino_views"]
+        assert result.is_error
 
 
 class TestConfiguration:

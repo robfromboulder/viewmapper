@@ -2,9 +2,12 @@
 
 package com.github.robfromboulder.viewmapper.agent.tools;
 
+import com.anthropic.helpers.BetaRunnableTool;
+import com.fasterxml.jackson.annotation.JsonClassDescription;
+import com.fasterxml.jackson.annotation.JsonPropertyDescription;
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.github.robfromboulder.viewmapper.agent.types.EntryPointSuggestion;
 import com.github.robfromboulder.viewmapper.parser.DependencyAnalyzer;
-import dev.langchain4j.agent.tool.Tool;
 
 import java.util.List;
 import java.util.Map;
@@ -19,6 +22,20 @@ import java.util.stream.Collectors;
 public class SuggestEntryPointsToolExecutor {
 
     public static final int DEFAULT_LIMIT = 5;
+
+    /**
+     * Arguments for suggestEntryPoints.
+     */
+    @JsonTypeName("suggestEntryPoints")
+    @JsonClassDescription("Suggests entry points for exploration. Strategies: 'high-impact' (foundational views), "
+            + "'leaf-views' (final outputs), 'central-hubs' (integration points)")
+    public static class Arguments {
+        @JsonPropertyDescription("One of 'high-impact', 'leaf-views', or 'central-hubs'")
+        public String strategy;
+
+        @JsonPropertyDescription("Maximum suggestions to return, " + DEFAULT_LIMIT + " unless the user asks for more")
+        public Integer limit;
+    }
 
     private final DependencyAnalyzer analyzer;
 
@@ -38,7 +55,6 @@ public class SuggestEntryPointsToolExecutor {
      * @param limit    Maximum number of suggestions to return (default: 5)
      * @return List of entry point suggestions with scores and reasons
      */
-    @Tool("Suggests entry points for exploration. Strategies: 'high-impact' (foundational views), 'leaf-views' (final outputs), 'central-hubs' (integration points)")
     public List<EntryPointSuggestion> suggestEntryPoints(String strategy, Integer limit) {
         int effectiveLimit = limit != null ? limit : DEFAULT_LIMIT;
         return switch (strategy.toLowerCase()) {
@@ -47,6 +63,13 @@ public class SuggestEntryPointsToolExecutor {
             case "central-hubs" -> suggestCentralHubs(effectiveLimit);
             default -> throw new IllegalArgumentException("Unknown strategy: " + strategy + ". Use 'high-impact', 'leaf-views', or 'central-hubs'");
         };
+    }
+
+    /**
+     * Returns the tools this executor provides to the model.
+     */
+    public List<BetaRunnableTool> tools() {
+        return List.of(BetaRunnableTool.of(Arguments.class, a -> RunnableTools.result(suggestEntryPoints(a.strategy, a.limit))));
     }
 
     private List<EntryPointSuggestion> suggestCentralHubs(int limit) {

@@ -2,17 +2,13 @@
 
 package com.github.robfromboulder.viewmapper.agent.tools;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.robfromboulder.viewmapper.agent.FakeMessageService;
+import com.github.robfromboulder.viewmapper.agent.FakeMessageService.ToolOutcome;
 import com.github.robfromboulder.viewmapper.agent.types.SubgraphResult;
 import com.github.robfromboulder.viewmapper.parser.DependencyAnalyzer;
-import dev.langchain4j.agent.tool.ToolExecutionRequest;
-import dev.langchain4j.agent.tool.ToolSpecification;
-import dev.langchain4j.agent.tool.ToolSpecifications;
-import dev.langchain4j.service.tool.DefaultToolExecutor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -167,7 +163,7 @@ class GenerateMermaidToolExecutorTest {
     }
 
     @Test
-    void testGenerateMermaidFromToolArguments() throws Exception {
+    void testGenerateMermaidFromToolArguments() {
         // a -> b -> c, called the way the model calls it, with JSON arguments
         analyzer.addView("b", "SELECT * FROM a");
         analyzer.addView("c", "SELECT * FROM b");
@@ -179,7 +175,7 @@ class GenerateMermaidToolExecutorTest {
     }
 
     @Test
-    void testGenerateMermaidRespectsDepth() throws Exception {
+    void testGenerateMermaidRespectsDepth() {
         // a -> b -> c -> d, depth 1 around c drops a
         analyzer.addView("b", "SELECT * FROM a");
         analyzer.addView("c", "SELECT * FROM b");
@@ -191,7 +187,7 @@ class GenerateMermaidToolExecutorTest {
     }
 
     @Test
-    void testGenerateMermaidReportsTruncation() throws Exception {
+    void testGenerateMermaidReportsTruncation() {
         // a -> b -> c -> d, capped below the views within depth
         analyzer.addView("b", "SELECT * FROM a");
         analyzer.addView("c", "SELECT * FROM b");
@@ -202,7 +198,7 @@ class GenerateMermaidToolExecutorTest {
     }
 
     @Test
-    void testGenerateMermaidClampsMaxNodes() throws Exception {
+    void testGenerateMermaidClampsMaxNodes() {
         // focus view with more dependents than a diagram can hold
         for (int i = 1; i <= 120; i++) {
             analyzer.addView("view" + i, "SELECT * FROM base");
@@ -225,23 +221,16 @@ class GenerateMermaidToolExecutorTest {
 
     // Helper methods
 
-    private String executeTool(String name, Object... values) throws Exception {
-        // names come from the generated spec, since they depend on how the class was compiled
-        ToolSpecification spec = ToolSpecifications.toolSpecificationsFrom(executor).stream()
-                .filter(s -> s.name().equals(name))
-                .findFirst()
-                .orElseThrow();
-        List<String> names = new ArrayList<>(spec.parameters().properties().keySet());
+    private String executeTool(String name, Object... values) {
+        // the model's JSON goes through the SDK's tool runner, which builds the arguments with Jackson
+        List<String> names = List.of("focusView", "depthUpstream", "depthDownstream", "maxNodes");
         Map<String, Object> arguments = new LinkedHashMap<>();
         for (int i = 0; i < values.length; i++) {
             arguments.put(names.get(i), values[i]);
         }
-        ToolExecutionRequest request = ToolExecutionRequest.builder()
-                .id("1")
-                .name(name)
-                .arguments(new ObjectMapper().writeValueAsString(arguments))
-                .build();
-        return new DefaultToolExecutor(executor, request).execute(request, "default");
+        ToolOutcome outcome = FakeMessageService.callTool(executor.tools(), name, arguments);
+        assertThat(outcome.isError()).as(outcome.content()).isFalse();
+        return outcome.content();
     }
 
 }
